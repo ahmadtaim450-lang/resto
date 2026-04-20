@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RestroHub</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+<div id="toasts"></div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="lw">
+    <div class="la">
+      <div class="la-grid"></div>
+      <div class="la-ring"></div>
+      <div class="la-title">Restro<span>Hub</span></div>
+      <div class="la-sub">نظام إدارة المطاعم الاحترافي</div>
+    </div>
+    <div class="lf">
+      <h2>أهلاً بك</h2>
+      <p>سجّل دخولك للمتابعة</p>
+      <div class="fld"><label>البريد الإلكتروني</label><input id="lemail" type="email" placeholder="email@example.com" value="admin@example.com"></div>
+      <div class="fld"><label>كلمة المرور</label><input id="lpass" type="password" placeholder="••••••" value="123456"></div>
+      <button class="l-btn" onclick="doLogin()">دخول ←</button>
+      <div class="l-err" id="lerr"></div>
+      <div class="role-hints">
+        <div class="rh" onclick="quickLogin('admin@example.com')"><b>مدير</b> admin@...</div>
+        <div class="rh" onclick="quickLogin('cashier@example.com')"><b>كاشير</b> cashier@...</div>
+        <div class="rh" onclick="quickLogin('waiter@example.com')"><b>نادل</b> waiter@...</div>
+        <div class="rh" onclick="quickLogin('kitchen@example.com')"><b>مطبخ</b> kitchen@...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="mainApp">
+  <nav id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-t">Restro<span>Hub</span></div>
+      <div class="sb-rn" id="sbRn">—</div>
+    </div>
+    <div class="sb-nav" id="sbNav"></div>
+    <div class="sb-bot">
+      <div class="u-av" id="uAv">م</div>
+      <div style="flex:1;min-width:0;"><div class="u-nm" id="uNm">—</div><div class="u-rl" id="uRl">—</div></div>
+      <button class="l-out" onclick="doLogout()" title="خروج">⇥</button>
+    </div>
+  </nav>
+
+  <div id="content">
+
+    <!-- DASHBOARD -->
+    <div class="screen active" id="dashboard">
+      <div class="ph">
+        <div><div class="ph-t">لوحة التحكم</div><div class="ph-s" id="dDate">—</div></div>
+        <div class="ph-a"><button class="btn b-ghost b-sm" onclick="renderDash()">↺ تحديث</button></div>
+      </div>
+      <div class="stats-row" id="dashStats"></div>
+      <div class="dash-alerts" id="dashAlerts"></div>
+      <div class="dash-grid">
+        <div class="card"><div class="card-hd">مبيعات آخر 7 أيام</div><div class="cw"><canvas id="cSales"></canvas></div></div>
+        <div class="card"><div class="card-hd">النشاطات الأخيرة</div><div id="actFd"></div></div>
+      </div>
+    </div>
+
+    <!-- TABLES -->
+    <div class="screen" id="tables">
+      <div class="ph">
+        <div><div class="ph-t">خريطة القاعة</div><div class="ph-s" id="tblSum">—</div></div>
+      </div>
+      <div class="fp-wrap">
+        <div class="fp-topbar">
+          <div class="fp-tools" id="fpTools"></div>
+          <div class="fp-info" id="fpInfo">اسحب الطاولات لترتيب القاعة</div>
+        </div>
+        <div class="fp-canvas-box" id="fpBox">
+          <canvas id="fpCanvas"></canvas>
+          <div class="fp-legend">
+            <div class="fp-legend-item"><div class="fp-dot free"></div>متاحة</div>
+            <div class="fp-legend-item"><div class="fp-dot occupied"></div>مشغولة</div>
+            <div class="fp-legend-item"><div class="fp-dot reserved"></div>محجوزة</div>
+          </div>
+          <div class="fp-selected-panel" id="fpSelPanel">
+            <div class="fp-sp-hd">
+              <div>
+                <div class="fp-sp-title" id="fpSpTitle">—</div>
+                <div class="fp-sp-info" id="fpSpInfo">—</div>
+              </div>
+              <button class="btn b-ghost b-sm" onclick="fpClearSelection()">✕</button>
+            </div>
+            <div class="fp-sp-acts" id="fpSpActs"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KITCHEN -->
+    <div class="screen" id="kitchen">
+      <div class="ph">
+        <div><div class="ph-t">شاشة المطبخ</div><div class="ph-s" id="kitCnt">—</div></div>
+        <button class="btn b-ghost b-sm" onclick="renderKitchen()">↺ تحديث</button>
+      </div>
+      <div class="kit-grid" id="kitGrid"></div>
+    </div>
+
+    <!-- INVENTORY (Multi-tab) -->
+    <div class="screen" id="inventory">
+      <div class="ph">
+        <div><div class="ph-t">إدارة المخزون</div><div class="ph-s">كل ما يخص المنتجات، الموردين، والجرد</div></div>
+        <div class="ph-a" id="invActions"></div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab on" data-itab="products" onclick="setInvTab('products')">📦 المنتجات</button>
+        <button class="tab" data-itab="movements" onclick="setInvTab('movements')">🔄 الحركات</button>
+        <button class="tab" data-itab="suppliers" onclick="setInvTab('suppliers')">🚚 الموردين</button>
+        <button class="tab" data-itab="purchases" onclick="setInvTab('purchases')">📋 أوامر الشراء</button>
+        <button class="tab" data-itab="stocktake" onclick="setInvTab('stocktake')">🔍 الجرد</button>
+        <button class="tab" data-itab="invreports" onclick="setInvTab('invreports')">📊 تقارير المخزون</button>
+      </div>
+
+      <!-- Products tab -->
+      <div id="invProducts">
+        <div class="filter-bar">
+          <input type="text" id="prodSearch" placeholder="🔍 بحث عن منتج..." oninput="renderProds()">
+          <select id="prodFilterCat" onchange="renderProds()">
+            <option value="">كل الفئات</option>
+          </select>
+          <select id="prodFilterStock" onchange="renderProds()">
+            <option value="">كل الحالات</option>
+            <option value="low">مخزون منخفض</option>
+            <option value="ok">مخزون طبيعي</option>
+            <option value="expired">منتهي/قارب الانتهاء</option>
+          </select>
+          <button class="btn b-ghost b-sm" onclick="exportProductsExcel()">⬇ Excel</button>
+          <button class="btn b-ghost b-sm" onclick="exportProductsPDF()">⬇ PDF</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          <table class="dt">
+            <thead><tr>
+              <th>المنتج</th><th>الفئة</th><th>المورد</th><th>السعر</th><th>التكلفة</th>
+              <th>المخزون</th><th>قيمة</th><th>الحالة</th><th>الصلاحية</th><th></th>
+            </tr></thead>
+            <tbody id="prodBd"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Movements tab -->
+      <div id="invMovements" style="display:none;">
+        <div class="filter-bar">
+          <select id="movFilterType" onchange="renderMovements()">
+            <option value="">كل الأنواع</option>
+            <option value="purchase">شراء</option>
+            <option value="sale">بيع</option>
+            <option value="adjustment">تعديل</option>
+            <option value="damage">تلف</option>
+            <option value="return">إرجاع</option>
+            <option value="stocktake">جرد</option>
+          </select>
+          <select id="movFilterProduct" onchange="renderMovements()">
+            <option value="">كل المنتجات</option>
+          </select>
+          <input type="date" id="movDateFrom" onchange="renderMovements()">
+          <input type="date" id="movDateTo" onchange="renderMovements()">
+          <button class="btn b-amber b-sm" onclick="openMovementM()">+ حركة يدوية</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          <table class="dt">
+            <thead><tr>
+              <th>التاريخ</th><th>النوع</th><th>المنتج</th><th>الكمية</th>
+              <th>قبل</th><th>بعد</th><th>المرجع</th><th>ملاحظات</th><th>المستخدم</th>
+            </tr></thead>
+            <tbody id="movBd"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Suppliers tab -->
+      <div id="invSuppliers" style="display:none;">
+        <div class="filter-bar">
+          <input type="text" id="supSearch" placeholder="🔍 بحث عن مورد..." oninput="renderSuppliers()">
+          <button class="btn b-amber b-sm" onclick="openSupplierM()">+ مورد جديد</button>
+        </div>
+        <div class="supplier-grid" id="supGrid"></div>
+      </div>
+
+      <!-- Purchase Orders tab -->
+      <div id="invPurchases" style="display:none;">
+        <div class="filter-bar">
+          <select id="poFilterStatus" onchange="renderPOs()">
+            <option value="">كل الحالات</option>
+            <option value="pending">معلق</option>
+            <option value="received">مستلم</option>
+            <option value="cancelled">ملغي</option>
+          </select>
+          <select id="poFilterSupplier" onchange="renderPOs()">
+            <option value="">كل الموردين</option>
+          </select>
+          <button class="btn b-amber b-sm" onclick="openPOM()">+ أمر شراء جديد</button>
+        </div>
+        <div class="po-list" id="poList"></div>
+      </div>
+
+      <!-- Stock Take tab -->
+      <div id="invStockTake" style="display:none;">
+        <div class="filter-bar">
+          <button class="btn b-amber b-sm" onclick="openStockTakeM()">+ بدء جرد جديد</button>
+        </div>
+        <div class="st-list" id="stList"></div>
+      </div>
+
+      <!-- Inventory Reports tab -->
+      <div id="invReports" style="display:none;">
+        <div class="filter-bar">
+          <input type="date" id="repDateFrom">
+          <input type="date" id="repDateTo">
+          <button class="btn b-amber b-sm" onclick="runInvReports()">↻ تحديث التقارير</button>
+        </div>
+        <div class="stats-row" id="invRepStats"></div>
+        <div class="dash-grid">
+          <div class="card"><div class="card-hd">اتجاه استهلاك أعلى 5 منتجات</div><div class="cw"><canvas id="cTrend"></canvas></div></div>
+          <div class="card"><div class="card-hd">الأكثر مبيعاً</div><div id="topSellers"></div></div>
+        </div>
+        <div class="dash-grid" style="margin-top:16px;">
+          <div class="card"><div class="card-hd">توزيع قيمة المخزون حسب الفئة</div><div class="cw"><canvas id="cInvValue"></canvas></div></div>
+          <div class="card"><div class="card-hd">الأكثر تلفاً</div><div id="topDamaged"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESERVATIONS -->
+    <div class="screen" id="reservations">
+      <div class="ph">
+        <div><div class="ph-t">الحجوزات</div></div>
+        <button class="btn b-amber b-sm" onclick="openResM()">+ حجز جديد</button>
+      </div>
+      <div class="res-l" id="resLst"></div>
+    </div>
+
+    <!-- REPORTS (financial) -->
+    <div class="screen" id="reports">
+      <div class="ph">
+        <div><div class="ph-t">التقارير المالية</div></div>
+        <button class="btn b-ghost b-sm" onclick="renderReports()">↺ تحديث</button>
+      </div>
+      <div class="tabs">
+        <button class="tab on" data-rtab="overview" onclick="setReportTab('overview')">نظرة عامة</button>
+        <button class="tab" data-rtab="invoices" onclick="setReportTab('invoices')">الفواتير</button>
+        <button class="tab" data-rtab="expenses" onclick="setReportTab('expenses')" id="tabExp">المصروفات</button>
+      </div>
+      <div id="repOverview">
+        <div class="stats-row" id="repSt"></div>
+        <div class="rep-g">
+          <div class="card"><div class="card-hd">توزيع المبيعات حسب الفئة</div><div class="cw"><canvas id="cRep"></canvas></div></div>
+          <div class="card"><div class="card-hd">آخر الفواتير</div><div id="invLst" style="max-height:270px;overflow-y:auto;"></div></div>
+        </div>
+      </div>
+      <div id="repInvoices" style="display:none;">
+        <div class="card"><div class="card-hd">كل الفواتير</div><div id="allInvLst"></div></div>
+      </div>
+      <div id="repExpenses" style="display:none;">
+        <div class="ph" style="margin-bottom:14px;"><div></div><button class="btn b-amber b-sm" onclick="openExpM()">+ إضافة مصروف</button></div>
+        <div class="card"><div class="card-hd">المصروفات</div><div id="expLst"></div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="screen" id="settings">
+      <div class="ph"><div class="ph-t">الإعدادات</div></div>
+      <div class="sw">
+        <div class="card">
+          <div class="card-hd">بيانات المطعم</div>
+          <div class="fgr"><div class="fg"><label>اسم المطعم</label><input id="sNm"></div><div class="fg"><label>العملة</label><input id="sCr"></div></div>
+          <div class="fgr"><div class="fg"><label>الضريبة %</label><input id="sTx" type="number"></div><div class="fg"><label>الهاتف</label><input id="sPh"></div></div>
+          <div class="fg"><label>العنوان</label><input id="sAd"></div>
+          <button class="btn b-amber" onclick="saveSet()">حفظ الإعدادات</button>
+        </div>
+        <div class="div"></div>
+        <div class="card">
+          <div class="card-hd">المستخدمون والصلاحيات</div>
+          <table class="dt"><thead><tr><th>الاسم</th><th>البريد</th><th>الدور</th><th></th></tr></thead><tbody id="usrBd"></tbody></table>
+          <button class="btn b-ghost b-sm" style="margin-top:13px" onclick="openUsrM()">+ مستخدم جديد</button>
+        </div>
+        <div class="div"></div>
+        <div class="card">
+          <div class="card-hd">منطقة الخطر</div>
+          <p style="font-size:.78rem;color:var(--muted);margin-bottom:12px">سيُحذف كل شيء نهائياً.</p>
+          <button class="btn b-rose" onclick="resetAll()">⚠ إعادة الضبط الكامل</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- POS -->
+<div id="posPanel" style="display:none;">
+  <div class="pos-box">
+    <div class="pos-hd">
+      <div><div class="pos-ht" id="posT">—</div><div class="pos-hm" id="posM">—</div></div>
+      <div style="display:flex;gap:7px;">
+        <button class="btn b-teal b-sm" id="posSnd" onclick="sendOrd()">↑ إرسال للمطبخ</button>
+        <button class="btn b-ghost b-sm" onclick="closePOS()">✕</button>
+      </div>
+    </div>
+    <div class="pos-body">
+      <div class="pos-l">
+        <div class="pos-cats" id="pCats"></div>
+        <div class="prod-grid" id="pGrid"></div>
+      </div>
+      <div class="pos-r">
+        <div class="pos-rh" id="posRh">الطلب الحالي</div>
+        <div class="ord-list" id="pOrdL"></div>
+        <div class="pos-tots">
+          <div class="tr"><span>المجموع الفرعي</span><span id="pSub">—</span></div>
+          <div class="tr"><span id="pTxL">الضريبة</span><span id="pTxV">—</span></div>
+          <div class="tr grand"><span>الإجمالي</span><span id="pGrd">—</span></div>
+          <div class="pay-row" id="pyRow">
+            <button class="pm on" id="pm-cash" onclick="selPay('cash')">💵 نقداً</button>
+            <button class="pm" id="pm-card" onclick="selPay('card')">💳 بطاقة</button>
+            <button class="pm" id="pm-online" onclick="selPay('online')">📱 أونلاين</button>
+          </div>
+          <button class="pos-main-btn" id="pMnBtn" onclick="pMain()">—</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="mBg" style="display:none;"><div class="modal" id="mBox"></div></div>
+
+<script src="app.js"></script>
+</body>
+</html>
