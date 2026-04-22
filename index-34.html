@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="theme-color" content="#0B0E14">
+<title>RestroHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+<!-- Ambient background -->
+<div class="bg-ambient">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-grid"></div>
+</div>
+
+<!-- Toast notifications -->
+<div id="toasts"></div>
+
+<!-- ═══════════════════════════════════════════════════ LOGIN ═══════════════════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-visual">
+      <div class="login-mesh"></div>
+      <div class="login-brand">
+        <div class="brand-mark">
+          <i data-lucide="utensils-crossed"></i>
+        </div>
+        <div class="brand-name">Restro<span>Hub</span></div>
+        <div class="brand-tagline">إدارة المطاعم الاحترافية</div>
+      </div>
+      <div class="login-quote">
+        <div class="quote-mark">"</div>
+        <div class="quote-text">النظام الذي يحول فوضى المطعم إلى أوركسترا منسقة</div>
+      </div>
+    </div>
+    <div class="login-form">
+      <div class="form-header">
+        <h2>أهلاً بعودتك</h2>
+        <p>سجّل دخولك للمتابعة إلى لوحة التحكم</p>
+      </div>
+      <div class="input-group">
+        <label>البريد الإلكتروني</label>
+        <div class="input-wrap">
+          <i data-lucide="mail" class="input-icon"></i>
+          <input id="lemail" type="email" placeholder="you@restaurant.com" value="admin@example.com">
+        </div>
+      </div>
+      <div class="input-group">
+        <label>كلمة المرور</label>
+        <div class="input-wrap">
+          <i data-lucide="lock" class="input-icon"></i>
+          <input id="lpass" type="password" placeholder="••••••••" value="123456">
+        </div>
+      </div>
+      <button class="btn-gold btn-lg btn-full" onclick="doLogin()">
+        <span>تسجيل الدخول</span>
+        <i data-lucide="arrow-left"></i>
+      </button>
+      <div class="login-error" id="lerr"></div>
+      <div class="login-divider"><span>حسابات تجريبية</span></div>
+      <div class="role-chips">
+        <button class="role-chip" onclick="quickLogin('admin@example.com')">
+          <i data-lucide="shield-check"></i><span>مدير</span>
+        </button>
+        <button class="role-chip" onclick="quickLogin('cashier@example.com')">
+          <i data-lucide="wallet"></i><span>كاشير</span>
+        </button>
+        <button class="role-chip" onclick="quickLogin('waiter@example.com')">
+          <i data-lucide="concierge-bell"></i><span>نادل</span>
+        </button>
+        <button class="role-chip" onclick="quickLogin('kitchen@example.com')">
+          <i data-lucide="chef-hat"></i><span>مطبخ</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ APP ═══════════════════════════════════════════════════ -->
+<div id="mainApp">
+
+  <!-- Mobile header -->
+  <header class="mobile-header">
+    <button class="icon-btn" onclick="toggleMobileNav()"><i data-lucide="menu"></i></button>
+    <div class="mobile-brand">Restro<span>Hub</span></div>
+    <button class="icon-btn" onclick="doLogout()"><i data-lucide="log-out"></i></button>
+  </header>
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="sidebar-top">
+      <div class="logo-wrap">
+        <div class="logo-mark"><i data-lucide="utensils-crossed"></i></div>
+        <div>
+          <div class="logo-text">Restro<span>Hub</span></div>
+          <div class="logo-sub" id="sbRn">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-nav" id="sbNav"></div>
+    <div class="sidebar-bottom">
+      <div class="user-chip">
+        <div class="user-avatar" id="uAv">م</div>
+        <div class="user-info">
+          <div class="user-name" id="uNm">—</div>
+          <div class="user-role" id="uRl">—</div>
+        </div>
+        <button class="icon-btn sm" onclick="doLogout()" title="خروج"><i data-lucide="log-out"></i></button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile overlay -->
+  <div class="mobile-nav-overlay" id="mobileOverlay" onclick="toggleMobileNav()"></div>
+
+  <!-- Content -->
+  <main id="content">
+
+    <!-- DASHBOARD -->
+    <section class="screen active" id="dashboard">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">لوحة التحكم</h1>
+          <p class="page-subtitle" id="dDate">—</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost" onclick="renderDash()"><i data-lucide="refresh-cw"></i><span>تحديث</span></button>
+        </div>
+      </header>
+      <div class="stats-grid" id="dashStats"></div>
+      <div class="dash-split">
+        <div class="panel">
+          <div class="panel-header">
+            <h3 class="panel-title">المبيعات خلال الأسبوع</h3>
+            <span class="panel-badge">آخر 7 أيام</span>
+          </div>
+          <div class="chart-box"><canvas id="cSales"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <h3 class="panel-title">النشاطات الأخيرة</h3>
+          </div>
+          <div class="activity-feed" id="actFd"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TABLES -->
+    <section class="screen" id="tables">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">خريطة القاعة</h1>
+          <p class="page-subtitle" id="tblSum">—</p>
+        </div>
+      </header>
+      <div class="floorplan">
+        <div class="fp-toolbar">
+          <div class="fp-actions" id="fpTools"></div>
+          <div class="fp-help" id="fpInfo"></div>
+        </div>
+        <div class="fp-stage" id="fpBox">
+          <canvas id="fpCanvas"></canvas>
+          <div class="fp-legend">
+            <div class="legend-item"><span class="dot free"></span>متاحة</div>
+            <div class="legend-item"><span class="dot occupied"></span>مشغولة</div>
+            <div class="legend-item"><span class="dot reserved"></span>محجوزة</div>
+          </div>
+          <div class="fp-drawer" id="fpSelPanel">
+            <div class="drawer-head">
+              <div>
+                <div class="drawer-title" id="fpSpTitle">—</div>
+                <div class="drawer-meta" id="fpSpInfo">—</div>
+              </div>
+              <button class="icon-btn sm" onclick="fpClearSelection()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="drawer-actions" id="fpSpActs"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- KITCHEN -->
+    <section class="screen" id="kitchen">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">شاشة المطبخ</h1>
+          <p class="page-subtitle" id="kitCnt">—</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost" onclick="renderKitchen()"><i data-lucide="refresh-cw"></i><span>تحديث</span></button>
+        </div>
+      </header>
+      <div class="kitchen-grid" id="kitGrid"></div>
+    </section>
+
+    <!-- PRODUCTS -->
+    <section class="screen" id="products">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">قائمة المنتجات</h1>
+          <p class="page-subtitle">إدارة المنتجات والأسعار</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost" onclick="exportProductsExcel()"><i data-lucide="file-spreadsheet"></i><span>Excel</span></button>
+          <button class="btn btn-ghost" onclick="exportProductsPDF()"><i data-lucide="file-text"></i><span>PDF</span></button>
+          <button class="btn btn-gold" onclick="openProdM()"><i data-lucide="plus"></i><span>منتج جديد</span></button>
+        </div>
+      </header>
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <i data-lucide="search" class="search-icon"></i>
+          <input type="text" id="prodSearch" placeholder="ابحث بالاسم أو الرقم..." oninput="renderProds()">
+        </div>
+        <select id="prodFilterCat" onchange="renderProds()">
+          <option value="">كل الفئات</option>
+        </select>
+      </div>
+      <div class="panel panel-flush">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              <th>الرقم</th><th>الصورة</th><th>الاسم</th><th>الفئة</th>
+              <th>التكلفة</th><th>السعر</th><th>الربح</th><th></th>
+            </tr></thead>
+            <tbody id="prodBd"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESERVATIONS -->
+    <section class="screen" id="reservations">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">الحجوزات</h1>
+          <p class="page-subtitle">إدارة حجوزات الطاولات</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-gold" onclick="openResM()"><i data-lucide="plus"></i><span>حجز جديد</span></button>
+        </div>
+      </header>
+      <div class="reservation-list" id="resLst"></div>
+    </section>
+
+    <!-- REPORTS -->
+    <section class="screen" id="reports">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">التقارير المالية</h1>
+          <p class="page-subtitle">تحليل الأداء والأرباح</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost" onclick="renderReports()"><i data-lucide="refresh-cw"></i><span>تحديث</span></button>
+        </div>
+      </header>
+      <div class="tabs">
+        <button class="tab on" data-rtab="overview" onclick="setReportTab('overview')">نظرة عامة</button>
+        <button class="tab" data-rtab="invoices" onclick="setReportTab('invoices')">الفواتير</button>
+        <button class="tab" data-rtab="expenses" onclick="setReportTab('expenses')" id="tabExp">المصروفات</button>
+      </div>
+      <div id="repOverview">
+        <div class="stats-grid" id="repSt"></div>
+        <div class="dash-split">
+          <div class="panel">
+            <div class="panel-header"><h3 class="panel-title">توزيع المبيعات</h3></div>
+            <div class="chart-box"><canvas id="cRep"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3 class="panel-title">آخر الفواتير</h3></div>
+            <div class="invoices-list" id="invLst"></div>
+          </div>
+        </div>
+        <div class="dash-split mt-16">
+          <div class="panel">
+            <div class="panel-header"><h3 class="panel-title">أعلى المنتجات ربحاً</h3></div>
+            <div id="topProfit" class="rank-list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3 class="panel-title">الأكثر مبيعاً</h3></div>
+            <div id="topSellers" class="rank-list"></div>
+          </div>
+        </div>
+      </div>
+      <div id="repInvoices" style="display:none;">
+        <div class="panel">
+          <div class="panel-header"><h3 class="panel-title">كل الفواتير</h3></div>
+          <div id="allInvLst"></div>
+        </div>
+      </div>
+      <div id="repExpenses" style="display:none;">
+        <div class="page-actions" style="margin-bottom:16px;justify-content:flex-end;">
+          <button class="btn btn-gold" onclick="openExpM()"><i data-lucide="plus"></i><span>مصروف جديد</span></button>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><h3 class="panel-title">سجل المصروفات</h3></div>
+          <div id="expLst"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="screen" id="settings">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">الإعدادات</h1>
+          <p class="page-subtitle">تخصيص النظام والمستخدمين</p>
+        </div>
+      </header>
+      <div class="settings-wrap">
+        <div class="panel">
+          <div class="panel-header"><h3 class="panel-title">بيانات المطعم</h3></div>
+          <div class="form-row">
+            <div class="input-group"><label>اسم المطعم</label><div class="input-wrap"><input id="sNm"></div></div>
+            <div class="input-group"><label>العملة</label><div class="input-wrap"><input id="sCr"></div></div>
+          </div>
+          <div class="form-row">
+            <div class="input-group"><label>نسبة الضريبة %</label><div class="input-wrap"><input id="sTx" type="number"></div></div>
+            <div class="input-group"><label>رقم الهاتف</label><div class="input-wrap"><input id="sPh"></div></div>
+          </div>
+          <div class="input-group"><label>العنوان</label><div class="input-wrap"><input id="sAd"></div></div>
+          <button class="btn btn-gold" onclick="saveSet()"><i data-lucide="save"></i><span>حفظ الإعدادات</span></button>
+        </div>
+
+        <div class="panel mt-16">
+          <div class="panel-header">
+            <h3 class="panel-title">المستخدمون والصلاحيات</h3>
+            <button class="btn btn-ghost btn-sm" onclick="openUsrM()"><i data-lucide="user-plus"></i><span>مستخدم جديد</span></button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>الاسم</th><th>البريد</th><th>الدور</th><th></th></tr></thead>
+              <tbody id="usrBd"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel danger-panel mt-16">
+          <div class="panel-header"><h3 class="panel-title">منطقة الخطر</h3></div>
+          <p class="muted-text">سيتم حذف جميع البيانات نهائياً ولا يمكن التراجع.</p>
+          <button class="btn btn-danger" onclick="resetAll()"><i data-lucide="trash-2"></i><span>إعادة الضبط الكامل</span></button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ POS ═══════════════════════════════════════════════════ -->
+<div id="posPanel" style="display:none;">
+  <div class="pos-surface">
+    <header class="pos-header">
+      <div>
+        <h3 class="pos-title" id="posT">—</h3>
+        <div class="pos-meta" id="posM">—</div>
+      </div>
+      <div class="pos-head-actions">
+        <button class="btn btn-teal btn-sm" id="posSnd" onclick="sendOrd()"><i data-lucide="send"></i><span>إرسال للمطبخ</span></button>
+        <button class="icon-btn" onclick="closePOS()"><i data-lucide="x"></i></button>
+      </div>
+    </header>
+    <div class="pos-body">
+      <div class="pos-menu">
+        <div class="pos-search">
+          <i data-lucide="search" class="search-icon"></i>
+          <input type="text" id="posSearch" placeholder="ابحث عن منتج..." oninput="renderPProds()">
+        </div>
+        <div class="pos-cats" id="pCats"></div>
+        <div class="pos-grid" id="pGrid"></div>
+      </div>
+      <div class="pos-cart">
+        <div class="cart-header">
+          <i data-lucide="shopping-bag"></i>
+          <span id="posRh">الطلب الحالي</span>
+        </div>
+        <div class="cart-items" id="pOrdL"></div>
+        <div class="cart-footer">
+          <div class="totals-line"><span>المجموع الفرعي</span><span id="pSub">—</span></div>
+          <div class="totals-line"><span id="pTxL">الضريبة</span><span id="pTxV">—</span></div>
+          <div class="totals-grand"><span>الإجمالي</span><span id="pGrd">—</span></div>
+          <button class="btn-primary-cta" id="pMnBtn" onclick="pMain()"><span>—</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ MODAL ═══════════════════════════════════════════════════ -->
+<div class="modal-bg" id="mBg" style="display:none;"><div class="modal" id="mBox"></div></div>
+
+<script src="app.js"></script>
+</body>
+</html>

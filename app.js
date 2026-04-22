@@ -1,31 +1,14 @@
-/* ══════════════════════════════════════════════════════════
-   RESTROHUB — SIMPLIFIED VERSION
-   sections:
-   1. Storage helpers
-   2. Seed data
-   3. Auth & Permissions
-   4. Navigation & UI
-   5. Dashboard
-   6. Floor plan (Fabric.js)
-   7. Sessions & POS (cash only)
-   8. Kitchen
-   9. Products (with images)
-   10. Reservations
-   11. Financial reports (with profit calc)
-   12. Settings
-   13. Export utilities
-══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   RESTROHUB — Premium Luxury Edition
+═══════════════════════════════════════════════════════════════ */
 
-/* ══════════════════════════════════════════════════════════
-   1. STORAGE HELPERS
-══════════════════════════════════════════════════════════ */
+/* ───── STORAGE HELPERS ───────────────────────────────────────── */
 const G = k => { try { const d = localStorage.getItem(k); return d ? JSON.parse(d) : null; } catch { return null; } };
 const S = (k, v) => {
   try { localStorage.setItem(k, JSON.stringify(v)); }
   catch (e) {
-    if (e.name === 'QuotaExceededError') {
-      toast('مساحة التخزين ممتلئة! احذف بعض الصور أو البيانات', 'err');
-    } else console.error(e);
+    if (e.name === 'QuotaExceededError') toast('مساحة التخزين ممتلئة', 'err');
+    else console.error(e);
   }
 };
 const NI = c => { const a = G(c) || []; return a.length ? Math.max(...a.map(i => i.id || 0)) + 1 : 1; };
@@ -35,65 +18,55 @@ const DL = (c, id) => S(c, (G(c) || []).filter(x => x.id !== id));
 const td = () => new Date().toISOString().split('T')[0];
 const fT = iso => iso ? new Date(iso).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' }) : '';
 const fD = iso => iso ? new Date(iso).toLocaleDateString('ar-IQ') : '';
-const fDT = iso => iso ? `${fD(iso)} ${fT(iso)}` : '';
 const fC = n => { const i = G('ri') || {}; return `${Number(n || 0).toLocaleString('ar-IQ')} ${i.currency || 'ل.ع'}`; };
+const escapeHtml = s => String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
-const addA = (txt, color = '#f0a500') => {
+const ic = (name, size = 16) => `<i data-lucide="${name}" style="width:${size}px;height:${size}px;"></i>`;
+const refreshIcons = () => { if (window.lucide) window.lucide.createIcons(); };
+
+const addA = (txt, color = '#D4AF37') => {
   const a = G('act') || [];
   a.unshift({ txt, time: new Date().toISOString(), color, userId: CU?.id });
   if (a.length > 50) a.pop();
   S('act', a);
 };
 
-/* ══════════════════════════════════════════════════════════
-   2. SEED DATA
-══════════════════════════════════════════════════════════ */
+/* ───── SEED ──────────────────────────────────────────────────── */
 const seed = () => {
-  if (G('rh_v5')) return;
-
+  if (G('rh_v6')) return;
   S('ri', { name: 'مطعم الأصيل', currency: 'ل.ع', tax: 10, phone: '+964 770 000 0000', address: 'بغداد' });
-
   S('tables', [
-    { id: 1, number: 1, capacity: 2, status: 'free', sessionId: null, x: 100, y: 100, shape: 'square' },
-    { id: 2, number: 2, capacity: 4, status: 'free', sessionId: null, x: 280, y: 100, shape: 'square' },
-    { id: 3, number: 3, capacity: 4, status: 'free', sessionId: null, x: 460, y: 100, shape: 'round' },
-    { id: 4, number: 4, capacity: 6, status: 'free', sessionId: null, x: 100, y: 310, shape: 'rect' },
-    { id: 5, number: 5, capacity: 4, status: 'free', sessionId: null, x: 340, y: 310, shape: 'round' },
-    { id: 6, number: 6, capacity: 2, status: 'free', sessionId: null, x: 520, y: 310, shape: 'square' },
+    { id: 1, number: 1, capacity: 2, status: 'free', sessionId: null, x: 120, y: 100, shape: 'square' },
+    { id: 2, number: 2, capacity: 4, status: 'free', sessionId: null, x: 300, y: 100, shape: 'square' },
+    { id: 3, number: 3, capacity: 4, status: 'free', sessionId: null, x: 490, y: 100, shape: 'round' },
+    { id: 4, number: 4, capacity: 6, status: 'free', sessionId: null, x: 120, y: 320, shape: 'rect' },
+    { id: 5, number: 5, capacity: 4, status: 'free', sessionId: null, x: 370, y: 320, shape: 'round' },
+    { id: 6, number: 6, capacity: 2, status: 'free', sessionId: null, x: 560, y: 320, shape: 'square' },
   ]);
-
-  // Simplified products: code, name, cost, price, image, category, emoji (fallback)
   S('products', [
-    { id: 1, code: '001', name: 'شاورما دجاج', cost: 12000, price: 25000, image: null, category: 'رئيسي', emoji: '🌯' },
-    { id: 2, code: '002', name: 'بطاطا مقلية', cost: 5000, price: 15000, image: null, category: 'جانبي', emoji: '🍟' },
-    { id: 3, code: '003', name: 'كوكاكولا', cost: 2000, price: 5000, image: null, category: 'مشروبات', emoji: '🥤' },
-    { id: 4, code: '004', name: 'كنافة', cost: 5000, price: 12000, image: null, category: 'حلويات', emoji: '🍮' },
-    { id: 5, code: '005', name: 'شيش طاووق', cost: 15000, price: 30000, image: null, category: 'رئيسي', emoji: '🍢' },
-    { id: 6, code: '006', name: 'عصير طازج', cost: 2500, price: 7000, image: null, category: 'مشروبات', emoji: '🍊' },
+    { id: 1, code: '001', name: 'شاورما دجاج', cost: 12000, price: 25000, image: null, category: 'رئيسي' },
+    { id: 2, code: '002', name: 'بطاطا مقلية', cost: 5000, price: 15000, image: null, category: 'جانبي' },
+    { id: 3, code: '003', name: 'كوكاكولا', cost: 2000, price: 5000, image: null, category: 'مشروبات' },
+    { id: 4, code: '004', name: 'كنافة', cost: 5000, price: 12000, image: null, category: 'حلويات' },
+    { id: 5, code: '005', name: 'شيش طاووق', cost: 15000, price: 30000, image: null, category: 'رئيسي' },
+    { id: 6, code: '006', name: 'عصير طازج', cost: 2500, price: 7000, image: null, category: 'مشروبات' },
   ]);
-
   S('users', [
     { id: 1, name: 'المدير العام', email: 'admin@example.com', password: '123456', role: 'manager' },
     { id: 2, name: 'أحمد الكاشير', email: 'cashier@example.com', password: '123456', role: 'cashier' },
     { id: 3, name: 'محمد النادل', email: 'waiter@example.com', password: '123456', role: 'waiter' },
     { id: 4, name: 'الشيف علي', email: 'kitchen@example.com', password: '123456', role: 'kitchen' },
   ]);
-
-  S('sessions', []);
-  S('orders', []);
-  S('invoices', []);
-  S('expenses', []);
+  S('sessions', []); S('orders', []); S('invoices', []); S('expenses', []);
   S('reservations', [
     { id: 1, customerName: 'أبو علي', phone: '07701234567', tableId: 3, date: td(), time: '13:00', guests: 4, status: 'confirmed', notes: '' },
     { id: 2, customerName: 'أم حسين', phone: '07709876543', tableId: 5, date: td(), time: '19:30', guests: 2, status: 'pending', notes: 'طاولة هادئة' },
   ]);
-  S('act', [{ txt: 'تم تهيئة النظام', time: new Date().toISOString(), color: '#00bfa5' }]);
-  S('rh_v5', true);
+  S('act', [{ txt: 'تم تهيئة النظام', time: new Date().toISOString(), color: '#2DD4BF' }]);
+  S('rh_v6', true);
 };
 
-/* ══════════════════════════════════════════════════════════
-   3. AUTH & PERMISSIONS
-══════════════════════════════════════════════════════════ */
+/* ───── AUTH & PERMISSIONS ────────────────────────────────────── */
 let CU = null;
 
 const PERMS = {
@@ -117,7 +90,11 @@ const PERMS = {
 const can = a => !!CU && PERMS[CU.role]?.actions.includes(a);
 const canSee = s => !!CU && PERMS[CU.role]?.screens.includes(s);
 
-const quickLogin = (em) => { document.getElementById('lemail').value = em; document.getElementById('lpass').value = '123456'; doLogin(); };
+const quickLogin = em => {
+  document.getElementById('lemail').value = em;
+  document.getElementById('lpass').value = '123456';
+  doLogin();
+};
 
 const doLogin = () => {
   const em = document.getElementById('lemail').value.trim(), pw = document.getElementById('lpass').value;
@@ -128,9 +105,15 @@ const doLogin = () => {
     document.getElementById('mainApp').classList.add('on');
     buildSidebar(); setupUI();
     go(PERMS[CU.role].screens[0]);
-  } else document.getElementById('lerr').textContent = 'البريد أو كلمة المرور غير صحيحة';
+  } else {
+    document.getElementById('lerr').textContent = 'البريد أو كلمة المرور غير صحيحة';
+  }
 };
-const doLogout = () => { CU = null; document.getElementById('mainApp').classList.remove('on'); document.getElementById('loginScreen').style.display = 'flex'; };
+const doLogout = () => {
+  CU = null;
+  document.getElementById('mainApp').classList.remove('on');
+  document.getElementById('loginScreen').style.display = 'flex';
+};
 
 const setupUI = () => {
   if (!CU) return;
@@ -138,38 +121,42 @@ const setupUI = () => {
   document.getElementById('uNm').textContent = CU.name;
   document.getElementById('uRl').textContent = rA[CU.role] || CU.role;
   document.getElementById('uAv').textContent = CU.name[0];
-  const i = G('ri') || {}; document.getElementById('sbRn').textContent = i.name || '—';
+  const i = G('ri') || {};
+  document.getElementById('sbRn').textContent = i.name || '—';
 };
 
 const buildSidebar = () => {
   const nav = document.getElementById('sbNav');
   const items = [
-    { id: 'dashboard', lbl: 'لوحة التحكم', ic: '◈', sec: 'الرئيسية' },
-    { id: 'tables', lbl: 'الطاولات', ic: '⊞', sec: 'التشغيل' },
-    { id: 'kitchen', lbl: 'المطبخ', ic: '◎', sec: 'التشغيل' },
-    { id: 'products', lbl: 'المنتجات', ic: '◧', sec: 'الإدارة' },
-    { id: 'reservations', lbl: 'الحجوزات', ic: '◷', sec: 'الإدارة' },
-    { id: 'reports', lbl: 'التقارير', ic: '◈', sec: 'الإدارة' },
-    { id: 'settings', lbl: 'الإعدادات', ic: '◉', sec: 'الإدارة' },
+    { id: 'dashboard', lbl: 'لوحة التحكم', ic: 'layout-dashboard', sec: 'الرئيسية' },
+    { id: 'tables', lbl: 'الطاولات', ic: 'grid-3x3', sec: 'التشغيل' },
+    { id: 'kitchen', lbl: 'المطبخ', ic: 'utensils', sec: 'التشغيل' },
+    { id: 'products', lbl: 'المنتجات', ic: 'package', sec: 'الإدارة' },
+    { id: 'reservations', lbl: 'الحجوزات', ic: 'calendar-days', sec: 'الإدارة' },
+    { id: 'reports', lbl: 'التقارير', ic: 'bar-chart-3', sec: 'الإدارة' },
+    { id: 'settings', lbl: 'الإعدادات', ic: 'settings', sec: 'الإدارة' },
   ];
   let html = '', lastSec = null;
   items.forEach(it => {
     if (!canSee(it.id)) return;
-    if (it.sec !== lastSec) { html += `<div class="sb-sec">${it.sec}</div>`; lastSec = it.sec; }
-    html += `<button class="sb-it" onclick="go('${it.id}')"><span class="sb-ic">${it.ic}</span> ${it.lbl}</button>`;
+    if (it.sec !== lastSec) { html += `<div class="nav-section">${it.sec}</div>`; lastSec = it.sec; }
+    html += `<button class="nav-item" onclick="go('${it.id}')"><i data-lucide="${it.ic}"></i><span>${it.lbl}</span></button>`;
   });
   nav.innerHTML = html;
+  refreshIcons();
 };
 
-/* ══════════════════════════════════════════════════════════
-   4. NAVIGATION & UI HELPERS
-══════════════════════════════════════════════════════════ */
+/* ───── NAVIGATION ────────────────────────────────────────────── */
 const go = id => {
   if (!canSee(id)) { toast('لا صلاحية للوصول', 'err'); return; }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.sb-it').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById(id)?.classList.add('active');
-  document.querySelector(`.sb-it[onclick="go('${id}')"]`)?.classList.add('active');
+  document.querySelector(`.nav-item[onclick="go('${id}')"]`)?.classList.add('active');
+  if (window.innerWidth <= 640) {
+    document.getElementById('sidebar').classList.remove('show');
+    document.getElementById('mobileOverlay').classList.remove('show');
+  }
   const renderers = {
     dashboard: renderDash, tables: renderFloorPlan, kitchen: renderKitchen,
     products: renderProds, reservations: renderRes, reports: renderReports, settings: renderSet
@@ -177,23 +164,46 @@ const go = id => {
   (renderers[id] || Function)();
 };
 
+const toggleMobileNav = () => {
+  document.getElementById('sidebar').classList.toggle('show');
+  document.getElementById('mobileOverlay').classList.toggle('show');
+};
+
+/* ───── TOAST & MODAL ─────────────────────────────────────────── */
+const toastIconMap = { ok: 'check-circle', err: 'alert-circle', info: 'info' };
 const toast = (msg, type = 'ok') => {
   const c = document.getElementById('toasts');
   const t = document.createElement('div');
-  t.className = `toast t-${type}`; t.textContent = msg;
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `${ic(toastIconMap[type] || 'info', 16)}<span>${escapeHtml(msg)}</span>`;
   c.appendChild(t);
-  setTimeout(() => t.remove(), 3200);
+  refreshIcons();
+  setTimeout(() => t.remove(), 3100);
 };
 
-const modal = html => { document.getElementById('mBox').innerHTML = html; document.getElementById('mBox').classList.remove('wide'); document.getElementById('mBg').style.display = 'flex'; };
-const modalWide = html => { document.getElementById('mBox').innerHTML = html; document.getElementById('mBox').classList.add('wide'); document.getElementById('mBg').style.display = 'flex'; };
-const closeM = () => { document.getElementById('mBg').style.display = 'none'; document.getElementById('mBox').classList.remove('wide'); };
+const modal = html => {
+  document.getElementById('mBox').innerHTML = html;
+  document.getElementById('mBox').classList.remove('wide');
+  document.getElementById('mBg').style.display = 'flex';
+  refreshIcons();
+};
+const modalWide = html => {
+  document.getElementById('mBox').innerHTML = html;
+  document.getElementById('mBox').classList.add('wide');
+  document.getElementById('mBg').style.display = 'flex';
+  refreshIcons();
+};
+const closeM = () => {
+  document.getElementById('mBg').style.display = 'none';
+  document.getElementById('mBox').classList.remove('wide');
+};
 
-const confDel = (col, id, nm) => modal(`<div class="modal-t">تأكيد الحذف</div>
-  <p style="color:var(--muted);font-size:.82rem;margin-bottom:18px">سيتم حذف <strong style="color:var(--fog)">${nm}</strong> نهائياً.</p>
-  <div class="modal-ft">
-    <button class="btn b-ghost" onclick="closeM()">إلغاء</button>
-    <button class="btn b-rose" onclick="doDel('${col}',${id})">حذف</button>
+const confDel = (col, id, nm) => modal(`
+  <div class="modal-title">تأكيد الحذف</div>
+  <div class="modal-subtitle">سيتم حذف <strong style="color:var(--text)">${escapeHtml(nm)}</strong> نهائياً ولا يمكن التراجع.</div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeM()">إلغاء</button>
+    <button class="btn btn-danger" onclick="doDel('${col}',${id})">${ic('trash-2')}<span>حذف</span></button>
   </div>`);
 
 const doDel = (col, id) => {
@@ -202,14 +212,38 @@ const doDel = (col, id) => {
   (r[col] || Function)();
 };
 
-document.getElementById('mBg').addEventListener('click', e => { if (e.target === document.getElementById('mBg')) closeM(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeM(); closePOS(); } });
-document.getElementById('lpass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+/* ───── INIT EVENT LISTENERS ──────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('mBg').addEventListener('click', e => {
+    if (e.target === document.getElementById('mBg')) closeM();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeM(); closePOS(); }
+  });
+  document.getElementById('lpass').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.btn, .btn-primary-cta');
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      btn.style.setProperty('--ripple-x', ((e.clientX - rect.left) / rect.width * 100) + '%');
+      btn.style.setProperty('--ripple-y', ((e.clientY - rect.top) / rect.height * 100) + '%');
+    }
+  });
+  refreshIcons();
+});
 
-/* ══════════════════════════════════════════════════════════
-   5. DASHBOARD
-══════════════════════════════════════════════════════════ */
+/* ───── DASHBOARD ─────────────────────────────────────────────── */
 let cS = null;
+
+const buildStat = (color, icon, value, label) => `
+  <div class="stat-card c-${color}">
+    <div class="stat-icon-wrap">${ic(icon, 20)}</div>
+    <div class="stat-value">${value}</div>
+    <div class="stat-label">${label}</div>
+  </div>`;
+
 const renderDash = () => {
   const inv = (G('invoices') || []).filter(i => i.status !== 'cancelled');
   const tbls = G('tables') || [], ords = G('orders') || [];
@@ -223,7 +257,6 @@ const renderDash = () => {
   if (can('dashboardFull')) {
     const exp = G('expenses') || [];
     const tExp = exp.filter(e => e.date && e.date.startsWith(ts)).reduce((s, e) => s + (e.amount || 0), 0);
-    // profit from today's orders
     const prods = G('products') || [];
     let tProfit = 0;
     tOrd.forEach(o => (o.items || []).forEach(it => {
@@ -231,22 +264,20 @@ const renderDash = () => {
       if (p) tProfit += ((p.price || 0) - (p.cost || 0)) * it.qty;
     }));
     tProfit -= tExp;
-    statsHtml = `
-      <div class="stat s-amber"><div class="st-v">${fC(tRev)}</div><div class="st-l">مبيعات اليوم</div></div>
-      <div class="stat s-rose"><div class="st-v">${fC(tExp)}</div><div class="st-l">مصروفات اليوم</div></div>
-      <div class="stat s-teal"><div class="st-v">${fC(tProfit)}</div><div class="st-l">صافي الربح</div></div>
-      <div class="stat s-sky"><div class="st-v">${tOrd.length}</div><div class="st-l">طلبات اليوم</div></div>`;
+    statsHtml = buildStat('gold', 'trending-up', fC(tRev), 'مبيعات اليوم') +
+                buildStat('red', 'receipt', fC(tExp), 'مصروفات اليوم') +
+                buildStat('teal', 'wallet', fC(tProfit), 'صافي الربح') +
+                buildStat('blue', 'clipboard-list', tOrd.length, 'طلبات اليوم');
   } else {
-    statsHtml = `
-      <div class="stat s-amber"><div class="st-v">${fC(tRev)}</div><div class="st-l">مبيعات اليوم</div></div>
-      <div class="stat s-teal"><div class="st-v">${tOrd.length}</div><div class="st-l">طلبات اليوم</div></div>
-      <div class="stat s-ember"><div class="st-v">${occ}/${tbls.length}</div><div class="st-l">طاولات مشغولة</div></div>
-      <div class="stat s-sky"><div class="st-v">${tInv.length}</div><div class="st-l">فواتير اليوم</div></div>`;
+    statsHtml = buildStat('gold', 'trending-up', fC(tRev), 'مبيعات اليوم') +
+                buildStat('teal', 'clipboard-list', tOrd.length, 'طلبات اليوم') +
+                buildStat('blue', 'users', `${occ}/${tbls.length}`, 'طاولات مشغولة') +
+                buildStat('purple', 'file-text', tInv.length, 'فواتير اليوم');
   }
   document.getElementById('dashStats').innerHTML = statsHtml;
+  refreshIcons();
 
-  const now = new Date();
-  document.getElementById('dDate').textContent = now.toLocaleDateString('ar-IQ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('dDate').textContent = new Date().toLocaleDateString('ar-IQ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   const days = [], sales = [];
   for (let i = 6; i >= 0; i--) {
@@ -257,41 +288,70 @@ const renderDash = () => {
   }
   const ctx = document.getElementById('cSales').getContext('2d');
   if (cS) cS.destroy();
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+  gradient.addColorStop(0, 'rgba(212, 175, 55, 0.22)');
+  gradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
+
   cS = new Chart(ctx, {
     type: 'line',
-    data: { labels: days, datasets: [{ data: sales, borderColor: '#f0a500', backgroundColor: 'rgba(240,165,0,0.05)', borderWidth: 2, tension: .4, fill: true, pointBackgroundColor: '#f0a500', pointRadius: 4, pointBorderColor: '#1e2330', pointBorderWidth: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#4a5168', font: { family: 'IBM Plex Sans Arabic', size: 11 } } }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#4a5168', font: { family: 'IBM Plex Sans Arabic' } } } } }
+    data: { labels: days, datasets: [{
+      data: sales,
+      borderColor: '#D4AF37',
+      backgroundColor: gradient,
+      borderWidth: 2.5,
+      tension: 0.42,
+      fill: true,
+      pointBackgroundColor: '#D4AF37',
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      pointBorderColor: '#0B0E14',
+      pointBorderWidth: 2,
+    }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#131722', titleColor: '#FFD700', bodyColor: '#FFFFFF', borderColor: 'rgba(212,175,55,0.2)', borderWidth: 1, padding: 12, cornerRadius: 10, titleFont: { family: 'Cairo', size: 12 }, bodyFont: { family: 'Inter', size: 13 } } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }, ticks: { color: '#8E9AAF', font: { family: 'Cairo', size: 11 } } },
+        y: { grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }, ticks: { color: '#8E9AAF', font: { family: 'Inter' } } }
+      }
+    }
   });
 
   const acts = G('act') || [];
-  document.getElementById('actFd').innerHTML = acts.slice(0, 8).map(a => `<div class="ai"><div class="ad" style="background:${a.color}"></div><div><div class="at">${a.txt}</div><div class="am">${fT(a.time)} — ${fD(a.time)}</div></div></div>`).join('') || '<div style="color:var(--muted);font-size:.77rem;text-align:center;padding:18px">لا توجد نشاطات</div>';
+  document.getElementById('actFd').innerHTML = acts.length
+    ? acts.slice(0, 8).map(a => `
+        <div class="activity-item">
+          <div class="activity-dot" style="background:${a.color}"></div>
+          <div style="flex:1;min-width:0;">
+            <div class="activity-text">${escapeHtml(a.txt)}</div>
+            <div class="activity-time">${fT(a.time)} · ${fD(a.time)}</div>
+          </div>
+        </div>`).join('')
+    : '<div style="text-align:center;padding:32px 0;color:var(--text-3);font-size:13px;">لا توجد نشاطات</div>';
 };
 
-/* ══════════════════════════════════════════════════════════
-   6. FLOOR PLAN (Fabric.js — tables with real chairs)
-══════════════════════════════════════════════════════════ */
-let fpCanvas = null;
-let fpSelectedId = null;
-let fpTimer = null;
+/* ───── FLOOR PLAN ────────────────────────────────────────────── */
+let fpCanvas = null, fpSelectedId = null, fpTimer = null;
 
 const renderFloorPlan = () => {
   const tools = document.getElementById('fpTools');
   let toolsHtml = '';
-  if (can('addTable')) toolsHtml += `<button class="btn b-amber b-sm" onclick="openAddTableM()">+ إضافة طاولة</button>`;
-  toolsHtml += `<button class="btn b-ghost b-sm" onclick="renderFloorPlan()">↺ تحديث</button>`;
+  if (can('addTable')) toolsHtml += `<button class="btn btn-gold btn-sm" onclick="openAddTableM()">${ic('plus')}<span>إضافة طاولة</span></button>`;
+  toolsHtml += `<button class="btn btn-ghost btn-sm" onclick="renderFloorPlan()">${ic('refresh-cw')}<span>تحديث</span></button>`;
   tools.innerHTML = toolsHtml;
 
   const tbls = G('tables') || [];
   const fr = tbls.filter(t => t.status === 'free').length;
   const oc = tbls.filter(t => t.status === 'occupied').length;
-  document.getElementById('tblSum').textContent = `متاحة: ${fr}  ·  مشغولة: ${oc}  ·  إجمالي: ${tbls.length}`;
+  document.getElementById('tblSum').textContent = `متاحة: ${fr} · مشغولة: ${oc} · إجمالي: ${tbls.length}`;
   document.getElementById('fpInfo').innerHTML = can('editLayout')
-    ? `<b>اسحب الطاولات</b> لترتيب القاعة — اضغط على طاولة لتحديدها`
-    : `اضغط على طاولة لعرض الخيارات`;
+    ? `<b>اسحب</b> لترتيب · اضغط للتحديد`
+    : `اضغط على طاولة للخيارات`;
 
   const container = document.getElementById('fpBox');
   const cw = Math.max(container.clientWidth - 20, 700);
-  const ch = 540;
+  const ch = 560;
   const canvasEl = document.getElementById('fpCanvas');
   canvasEl.width = cw; canvasEl.height = ch;
 
@@ -303,15 +363,14 @@ const renderFloorPlan = () => {
 
   fpCanvas.on('mouse:down', e => {
     if (!e.target) { fpClearSelection(); return; }
-    const tid = e.target.tableId;
-    if (tid) fpSelectTable(tid);
+    if (e.target.tableId) fpSelectTable(e.target.tableId);
   });
-
   fpCanvas.on('object:modified', e => {
     if (!can('editLayout')) return;
-    const obj = e.target;
-    if (obj.tableGroupId) UP('tables', obj.tableGroupId, { x: obj.left, y: obj.top });
+    if (e.target.tableGroupId) UP('tables', e.target.tableGroupId, { x: e.target.left, y: e.target.top });
   });
+
+  refreshIcons();
 
   if (fpTimer) clearInterval(fpTimer);
   fpTimer = setInterval(() => {
@@ -326,123 +385,146 @@ const drawAllTables = () => {
   const sess = G('sessions') || [];
   const prevSel = fpSelectedId;
   fpCanvas.clear();
-
   tbls.forEach(t => {
     const s = sess.find(x => x.id === t.sessionId);
-    const isSelected = t.id === prevSel;
-    const group = buildTableGroup(t, s, isSelected);
-    fpCanvas.add(group);
+    fpCanvas.add(buildTableGroup(t, s, t.id === prevSel));
   });
-
   fpCanvas.renderAll();
 };
 
 const buildTableGroup = (t, session, isSelected) => {
-  const statusColor = { free: '#00bfa5', occupied: '#f0a500', reserved: '#3d9cf0' }[t.status] || '#4a5168';
+  const statusColor = { free: '#2DD4BF', occupied: '#D4AF37', reserved: '#60A5FA' }[t.status] || '#8E9AAF';
   const objects = [];
   const capacity = t.capacity || 4;
-  const chairColor = '#5a3920';
-  const chairStroke = '#3d2818';
+
+  const chairFill = '#2A2416';
+  const chairStroke = '#1A1610';
+  const chairHighlight = '#3D3420';
   const chairSize = 20;
-  const tableColor = '#8b6239';
+
+  const tableFill = '#5D3A1E';
+  const tableEdge = '#3D2614';
+  const tableShine = '#7A5232';
 
   if (t.shape === 'round') {
-    const tableRadius = 42;
-    const chairDistance = tableRadius + 22;
+    const tableRadius = 44;
+    const chairDistance = tableRadius + 24;
 
     for (let i = 0; i < capacity; i++) {
       const angle = (i / capacity) * Math.PI * 2 - Math.PI / 2;
       const cx = Math.cos(angle) * chairDistance;
       const cy = Math.sin(angle) * chairDistance;
-      objects.push(new fabric.Rect({
-        left: cx, top: cy, width: chairSize, height: chairSize, rx: 5, ry: 5,
-        fill: chairColor, stroke: chairStroke, strokeWidth: 1.5,
-        originX: 'center', originY: 'center',
-        shadow: 'rgba(0,0,0,0.4) 0 2px 3px',
-      }));
+      objects.push(new fabric.Rect({ left: cx + 1, top: cy + 2, width: chairSize, height: chairSize, rx: 6, ry: 6, fill: 'rgba(0,0,0,0.5)', originX: 'center', originY: 'center' }));
+      objects.push(new fabric.Rect({ left: cx, top: cy, width: chairSize, height: chairSize, rx: 6, ry: 6, fill: chairFill, stroke: chairStroke, strokeWidth: 1.5, originX: 'center', originY: 'center' }));
+      objects.push(new fabric.Rect({ left: cx, top: cy - chairSize/2 + 3, width: chairSize - 4, height: 2, fill: chairHighlight, originX: 'center', originY: 'center', opacity: 0.6 }));
       const backAngle = angle + Math.PI;
-      const backDist = chairSize / 2 + 2;
+      const backDist = chairSize / 2 + 1;
       objects.push(new fabric.Rect({
         left: cx + Math.cos(backAngle) * backDist,
         top: cy + Math.sin(backAngle) * backDist,
-        width: chairSize - 4, height: 3,
-        fill: chairStroke,
-        originX: 'center', originY: 'center',
+        width: chairSize - 6, height: 3,
+        fill: chairStroke, originX: 'center', originY: 'center',
         angle: (angle * 180 / Math.PI) + 90,
       }));
     }
 
-    objects.push(new fabric.Circle({ left: 2, top: 3, radius: tableRadius, fill: 'rgba(0,0,0,0.35)', originX: 'center', originY: 'center' }));
-    objects.push(new fabric.Circle({ left: 0, top: 0, radius: tableRadius, fill: tableColor, stroke: statusColor, strokeWidth: 2.5, originX: 'center', originY: 'center' }));
-    objects.push(new fabric.Circle({ left: 0, top: 0, radius: tableRadius - 6, fill: 'transparent', stroke: 'rgba(0,0,0,0.18)', strokeWidth: 1, originX: 'center', originY: 'center' }));
-    objects.push(new fabric.Circle({ left: 0, top: 0, radius: tableRadius - 12, fill: 'transparent', stroke: 'rgba(0,0,0,0.12)', strokeWidth: 1, originX: 'center', originY: 'center' }));
+    objects.push(new fabric.Circle({ left: 3, top: 5, radius: tableRadius, fill: 'rgba(0,0,0,0.55)', originX: 'center', originY: 'center' }));
+    objects.push(new fabric.Circle({ left: 0, top: 0, radius: tableRadius + 2, fill: 'transparent', stroke: statusColor, strokeWidth: 1, opacity: 0.25, originX: 'center', originY: 'center' }));
+    objects.push(new fabric.Circle({ left: 0, top: 0, radius: tableRadius, fill: tableFill, stroke: statusColor, strokeWidth: 2.5, originX: 'center', originY: 'center' }));
+    objects.push(new fabric.Circle({ left: 0, top: 0, radius: tableRadius - 7, fill: 'transparent', stroke: tableEdge, strokeWidth: 1, opacity: 0.6, originX: 'center', originY: 'center' }));
+    objects.push(new fabric.Circle({ left: 0, top: 0, radius: tableRadius - 14, fill: 'transparent', stroke: tableEdge, strokeWidth: 1, opacity: 0.4, originX: 'center', originY: 'center' }));
+    objects.push(new fabric.Circle({ left: -10, top: -12, radius: tableRadius - 20, fill: tableShine, opacity: 0.2, originX: 'center', originY: 'center' }));
 
   } else if (t.shape === 'rect') {
-    const tw = 140, th = 70;
+    const tw = 150, th = 74;
     const chairsPerSide = Math.ceil(capacity / 2);
     const remaining = capacity - chairsPerSide;
 
     for (let i = 0; i < chairsPerSide; i++) {
       const cx = -tw / 2 + (tw / (chairsPerSide + 1)) * (i + 1);
-      objects.push(new fabric.Rect({ left: cx, top: -th / 2 - 16, width: chairSize, height: chairSize, rx: 5, ry: 5, fill: chairColor, stroke: chairStroke, strokeWidth: 1.5, originX: 'center', originY: 'center', shadow: 'rgba(0,0,0,0.4) 0 2px 3px' }));
-      objects.push(new fabric.Rect({ left: cx, top: -th / 2 - 7, width: chairSize - 4, height: 3, fill: chairStroke, originX: 'center', originY: 'center' }));
+      objects.push(new fabric.Rect({ left: cx + 1, top: -th/2 - 16 + 2, width: chairSize, height: chairSize, rx: 6, ry: 6, fill: 'rgba(0,0,0,0.5)', originX: 'center', originY: 'center' }));
+      objects.push(new fabric.Rect({ left: cx, top: -th / 2 - 16, width: chairSize, height: chairSize, rx: 6, ry: 6, fill: chairFill, stroke: chairStroke, strokeWidth: 1.5, originX: 'center', originY: 'center' }));
+      objects.push(new fabric.Rect({ left: cx, top: -th / 2 - 7, width: chairSize - 6, height: 3, fill: chairStroke, originX: 'center', originY: 'center' }));
     }
     for (let i = 0; i < remaining; i++) {
       const cx = -tw / 2 + (tw / (remaining + 1)) * (i + 1);
-      objects.push(new fabric.Rect({ left: cx, top: th / 2 + 16, width: chairSize, height: chairSize, rx: 5, ry: 5, fill: chairColor, stroke: chairStroke, strokeWidth: 1.5, originX: 'center', originY: 'center', shadow: 'rgba(0,0,0,0.4) 0 2px 3px' }));
-      objects.push(new fabric.Rect({ left: cx, top: th / 2 + 7, width: chairSize - 4, height: 3, fill: chairStroke, originX: 'center', originY: 'center' }));
+      objects.push(new fabric.Rect({ left: cx + 1, top: th/2 + 16 + 2, width: chairSize, height: chairSize, rx: 6, ry: 6, fill: 'rgba(0,0,0,0.5)', originX: 'center', originY: 'center' }));
+      objects.push(new fabric.Rect({ left: cx, top: th / 2 + 16, width: chairSize, height: chairSize, rx: 6, ry: 6, fill: chairFill, stroke: chairStroke, strokeWidth: 1.5, originX: 'center', originY: 'center' }));
+      objects.push(new fabric.Rect({ left: cx, top: th / 2 + 7, width: chairSize - 6, height: 3, fill: chairStroke, originX: 'center', originY: 'center' }));
     }
 
-    objects.push(new fabric.Rect({ left: 2, top: 3, width: tw, height: th, rx: 8, ry: 8, fill: 'rgba(0,0,0,0.35)', originX: 'center', originY: 'center' }));
-    objects.push(new fabric.Rect({ left: 0, top: 0, width: tw, height: th, rx: 8, ry: 8, fill: tableColor, stroke: statusColor, strokeWidth: 2.5, originX: 'center', originY: 'center' }));
-    objects.push(new fabric.Line([-tw / 2 + 14, -6, tw / 2 - 14, -6], { stroke: 'rgba(0,0,0,0.15)', strokeWidth: 1 }));
-    objects.push(new fabric.Line([-tw / 2 + 14, 6, tw / 2 - 14, 6], { stroke: 'rgba(0,0,0,0.15)', strokeWidth: 1 }));
+    objects.push(new fabric.Rect({ left: 3, top: 5, width: tw, height: th, rx: 10, ry: 10, fill: 'rgba(0,0,0,0.55)', originX: 'center', originY: 'center' }));
+    objects.push(new fabric.Rect({ left: 0, top: 0, width: tw, height: th, rx: 10, ry: 10, fill: tableFill, stroke: statusColor, strokeWidth: 2.5, originX: 'center', originY: 'center' }));
+    objects.push(new fabric.Line([-tw / 2 + 16, -8, tw / 2 - 16, -8], { stroke: tableEdge, strokeWidth: 1, opacity: 0.5 }));
+    objects.push(new fabric.Line([-tw / 2 + 16, 8, tw / 2 - 16, 8], { stroke: tableEdge, strokeWidth: 1, opacity: 0.5 }));
+    objects.push(new fabric.Rect({ left: 0, top: -th / 4, width: tw - 16, height: 8, rx: 4, ry: 4, fill: tableShine, opacity: 0.15, originX: 'center', originY: 'center' }));
 
   } else {
-    const ts = 78;
-    let chairCount = Math.min(capacity, 4);
+    const ts = 80;
+    const chairCount = Math.min(capacity, 4);
     const positions = [
       { x: 0, y: -ts / 2 - 16 }, { x: 0, y: ts / 2 + 16 },
       { x: -ts / 2 - 16, y: 0 }, { x: ts / 2 + 16, y: 0 },
     ];
     for (let i = 0; i < chairCount; i++) {
       const pos = positions[i];
-      objects.push(new fabric.Rect({ left: pos.x, top: pos.y, width: chairSize, height: chairSize, rx: 5, ry: 5, fill: chairColor, stroke: chairStroke, strokeWidth: 1.5, originX: 'center', originY: 'center', shadow: 'rgba(0,0,0,0.4) 0 2px 3px' }));
+      objects.push(new fabric.Rect({ left: pos.x + 1, top: pos.y + 2, width: chairSize, height: chairSize, rx: 6, ry: 6, fill: 'rgba(0,0,0,0.5)', originX: 'center', originY: 'center' }));
+      objects.push(new fabric.Rect({ left: pos.x, top: pos.y, width: chairSize, height: chairSize, rx: 6, ry: 6, fill: chairFill, stroke: chairStroke, strokeWidth: 1.5, originX: 'center', originY: 'center' }));
       const dirX = pos.x === 0 ? 0 : (pos.x > 0 ? -1 : 1);
       const dirY = pos.y === 0 ? 0 : (pos.y > 0 ? -1 : 1);
       objects.push(new fabric.Rect({
-        left: pos.x + dirX * (chairSize / 2 + 1), top: pos.y + dirY * (chairSize / 2 + 1),
-        width: dirX ? 3 : chairSize - 4, height: dirY ? 3 : chairSize - 4,
+        left: pos.x + dirX * (chairSize / 2 + 1),
+        top: pos.y + dirY * (chairSize / 2 + 1),
+        width: dirX ? 3 : chairSize - 6,
+        height: dirY ? 3 : chairSize - 6,
         fill: chairStroke, originX: 'center', originY: 'center',
       }));
     }
 
-    objects.push(new fabric.Rect({ left: 2, top: 3, width: ts, height: ts, rx: 7, ry: 7, fill: 'rgba(0,0,0,0.35)', originX: 'center', originY: 'center' }));
-    objects.push(new fabric.Rect({ left: 0, top: 0, width: ts, height: ts, rx: 7, ry: 7, fill: tableColor, stroke: statusColor, strokeWidth: 2.5, originX: 'center', originY: 'center' }));
-    objects.push(new fabric.Line([-ts / 2 + 10, 0, ts / 2 - 10, 0], { stroke: 'rgba(0,0,0,0.15)', strokeWidth: 1 }));
+    objects.push(new fabric.Rect({ left: 3, top: 5, width: ts, height: ts, rx: 8, ry: 8, fill: 'rgba(0,0,0,0.55)', originX: 'center', originY: 'center' }));
+    objects.push(new fabric.Rect({ left: 0, top: 0, width: ts, height: ts, rx: 8, ry: 8, fill: tableFill, stroke: statusColor, strokeWidth: 2.5, originX: 'center', originY: 'center' }));
+    objects.push(new fabric.Line([-ts / 2 + 12, 0, ts / 2 - 12, 0], { stroke: tableEdge, strokeWidth: 1, opacity: 0.5 }));
+    objects.push(new fabric.Rect({ left: -ts / 4, top: -ts / 4, width: ts / 3, height: 5, rx: 2, ry: 2, fill: tableShine, opacity: 0.2, originX: 'center', originY: 'center' }));
   }
 
   objects.push(new fabric.Text(String(t.number), {
-    left: 0, top: -4, fontSize: 22, fontFamily: 'Syne, sans-serif', fontWeight: '800',
-    fill: '#fff', originX: 'center', originY: 'center', shadow: 'rgba(0,0,0,0.6) 0 1px 2px',
+    left: 0, top: -4,
+    fontSize: 24, fontFamily: 'Playfair Display, serif', fontWeight: '800',
+    fill: '#FFFFFF', originX: 'center', originY: 'center',
+    shadow: 'rgba(0,0,0,0.7) 0 2px 3px',
   }));
-  objects.push(new fabric.Text(`👥${t.capacity}`, {
-    left: 0, top: 14, fontSize: 10, fontFamily: 'IBM Plex Sans Arabic', fontWeight: '600',
-    fill: 'rgba(255,255,255,0.8)', originX: 'center', originY: 'center',
+  objects.push(new fabric.Text(`${t.capacity} · Seats`, {
+    left: 0, top: 16,
+    fontSize: 9, fontFamily: 'Inter, sans-serif', fontWeight: '500',
+    fill: 'rgba(255,255,255,0.65)', originX: 'center', originY: 'center',
+    charSpacing: 50,
   }));
 
   if (t.status === 'occupied' && session) {
     const diff = Math.floor((Date.now() - new Date(session.startTime)) / 1000);
     const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60);
-    const timeStr = `${h ? h + 'س ' : ''}${m}د`;
-    const topOffset = t.shape === 'round' ? -80 : (t.shape === 'rect' ? -68 : -75);
-    objects.push(new fabric.Rect({ left: 0, top: topOffset, width: 62, height: 22, rx: 11, ry: 11, fill: 'rgba(240,165,0,0.95)', originX: 'center', originY: 'center', shadow: 'rgba(0,0,0,0.3) 0 2px 4px' }));
-    objects.push(new fabric.Text(`⏱ ${timeStr}`, { left: 0, top: topOffset, fontSize: 10, fontFamily: 'IBM Plex Sans Arabic', fontWeight: '700', fill: '#0d0f14', originX: 'center', originY: 'center' }));
+    const timeStr = `${h ? h + 'h ' : ''}${m}m`;
+    const topOffset = t.shape === 'round' ? -80 : (t.shape === 'rect' ? -70 : -76);
+    objects.push(new fabric.Rect({
+      left: 0, top: topOffset, width: 72, height: 24, rx: 12, ry: 12,
+      fill: '#D4AF37', stroke: '#FFD700', strokeWidth: 0.5,
+      originX: 'center', originY: 'center',
+      shadow: 'rgba(212,175,55,0.4) 0 4px 12px',
+    }));
+    objects.push(new fabric.Text(`● ${timeStr}`, {
+      left: 0, top: topOffset,
+      fontSize: 11, fontFamily: 'Inter, sans-serif', fontWeight: '700',
+      fill: '#0B0E14', originX: 'center', originY: 'center',
+    }));
   }
 
   if (isSelected) {
-    const ringR = t.shape === 'round' ? 72 : (t.shape === 'rect' ? 98 : 62);
-    objects.push(new fabric.Circle({ left: 0, top: 0, radius: ringR, fill: 'transparent', stroke: '#a855f7', strokeWidth: 2, strokeDashArray: [6, 4], originX: 'center', originY: 'center', opacity: 0.8 }));
+    const ringR = t.shape === 'round' ? 74 : (t.shape === 'rect' ? 100 : 64);
+    objects.push(new fabric.Circle({
+      left: 0, top: 0, radius: ringR,
+      fill: 'transparent', stroke: '#D4AF37', strokeWidth: 2, strokeDashArray: [6, 5],
+      originX: 'center', originY: 'center', opacity: 0.9,
+    }));
   }
 
   const group = new fabric.Group(objects, {
@@ -469,28 +551,29 @@ const fpSelectTable = (id, silent = false) => {
   const stLbl = { free: 'متاحة', occupied: 'مشغولة', reserved: 'محجوزة' }[t.status] || t.status;
 
   document.getElementById('fpSpTitle').textContent = `طاولة ${t.number}`;
-  let info = `${stLbl} · سعة ${t.capacity} أشخاص`;
+  let info = `${stLbl} · ${t.capacity} أشخاص`;
   if (s) {
     const diff = Math.floor((Date.now() - new Date(s.startTime)) / 1000);
     const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60);
-    info += ` · منذ ${h ? h + 'س ' : ''}${m}د · إجمالي: ${fC(s.total || 0)}`;
+    info += ` · منذ ${h ? h + 'س ' : ''}${m}د · ${fC(s.total || 0)}`;
   }
   document.getElementById('fpSpInfo').textContent = info;
 
   let actsHtml = '';
   if (t.status === 'free') {
-    if (can('startSession')) actsHtml += `<button class="btn b-teal b-sm" onclick="startSess(${t.id})">▶ بدء جلسة</button>`;
-    if (can('addOrder')) actsHtml += `<button class="btn b-ghost b-sm" onclick="openPOS(${t.id},false)">+ إضافة طلب</button>`;
+    if (can('startSession')) actsHtml += `<button class="btn btn-teal btn-sm" onclick="startSess(${t.id})">${ic('play')}<span>بدء جلسة</span></button>`;
+    if (can('addOrder')) actsHtml += `<button class="btn btn-ghost btn-sm" onclick="openPOS(${t.id},false)">${ic('plus')}<span>إضافة طلب</span></button>`;
   } else if (t.status === 'occupied') {
-    if (can('addOrder')) actsHtml += `<button class="btn b-teal b-sm" onclick="openPOS(${t.id},false)">+ إضافة طلب</button>`;
-    if (can('pay')) actsHtml += `<button class="btn b-amber b-sm" onclick="openPOS(${t.id},true)">💳 تسديد</button>`;
-    if (can('endSession') && !can('pay')) actsHtml += `<button class="btn b-rose b-sm" onclick="requestBill(${t.id})">🧾 طلب الفاتورة</button>`;
+    if (can('addOrder')) actsHtml += `<button class="btn btn-teal btn-sm" onclick="openPOS(${t.id},false)">${ic('plus')}<span>طلب</span></button>`;
+    if (can('pay')) actsHtml += `<button class="btn btn-gold btn-sm" onclick="openPOS(${t.id},true)">${ic('credit-card')}<span>تسديد</span></button>`;
+    if (can('endSession') && !can('pay')) actsHtml += `<button class="btn btn-blue btn-sm" onclick="requestBill(${t.id})">${ic('receipt')}<span>طلب الفاتورة</span></button>`;
   }
-  if (can('editLayout')) actsHtml += `<button class="btn b-ghost b-sm" onclick="openEditTableM(${t.id})">✏ تعديل</button>`;
-  if (can('deleteTable') && t.status === 'free') actsHtml += `<button class="btn b-rose b-sm" onclick="confirmDelTable(${t.id})">🗑 حذف</button>`;
+  if (can('editLayout')) actsHtml += `<button class="btn btn-ghost btn-sm" onclick="openEditTableM(${t.id})">${ic('edit-3')}<span>تعديل</span></button>`;
+  if (can('deleteTable') && t.status === 'free') actsHtml += `<button class="btn btn-danger btn-sm" onclick="confirmDelTable(${t.id})">${ic('trash-2')}<span>حذف</span></button>`;
 
   document.getElementById('fpSpActs').innerHTML = actsHtml;
   document.getElementById('fpSelPanel').classList.add('on');
+  refreshIcons();
 };
 
 const fpClearSelection = () => {
@@ -502,21 +585,23 @@ const fpClearSelection = () => {
 const openAddTableM = () => {
   const tbls = G('tables') || [];
   const nextNum = tbls.length ? Math.max(...tbls.map(t => t.number)) + 1 : 1;
-  modal(`<div class="modal-t">إضافة طاولة جديدة</div>
-    <div class="fgr">
-      <div class="fg"><label>رقم الطاولة</label><input type="number" id="ntNum" value="${nextNum}"></div>
-      <div class="fg"><label>السعة</label><input type="number" id="ntCap" value="4" min="1"></div>
+  modal(`
+    <div class="modal-title">إضافة طاولة جديدة</div>
+    <div class="modal-subtitle">حدد مواصفات الطاولة ثم اسحبها في الخريطة</div>
+    <div class="form-row">
+      <div class="input-group"><label>رقم الطاولة</label><div class="input-wrap"><input type="number" id="ntNum" value="${nextNum}"></div></div>
+      <div class="input-group"><label>السعة</label><div class="input-wrap"><input type="number" id="ntCap" value="4" min="1"></div></div>
     </div>
-    <div class="fg"><label>الشكل</label>
+    <div class="input-group"><label>الشكل</label><div class="input-wrap">
       <select id="ntShape">
-        <option value="square">مربع (2-4 أشخاص)</option>
-        <option value="rect">مستطيل (4-8 أشخاص)</option>
-        <option value="round">دائري (2-6 أشخاص)</option>
+        <option value="square">مربع</option>
+        <option value="rect">مستطيل</option>
+        <option value="round">دائري</option>
       </select>
-    </div>
-    <div class="modal-ft">
-      <button class="btn b-ghost" onclick="closeM()">إلغاء</button>
-      <button class="btn b-amber" onclick="addTable()">إضافة</button>
+    </div></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM()">إلغاء</button>
+      <button class="btn btn-gold" onclick="addTable()">${ic('plus')}<span>إضافة</span></button>
     </div>`);
 };
 
@@ -529,28 +614,29 @@ const addTable = () => {
   if (tbls.find(t => t.number === num)) { toast('الرقم مستخدم مسبقاً', 'err'); return; }
   tbls.push({ id: NI('tables'), number: num, capacity: cap, status: 'free', sessionId: null, x: 200, y: 200, shape });
   S('tables', tbls);
-  addA(`إضافة طاولة ${num}`, '#00bfa5');
-  toast('✓ تمت الإضافة'); closeM(); renderFloorPlan();
+  addA(`إضافة طاولة ${num}`, '#2DD4BF');
+  toast('تمت الإضافة'); closeM(); renderFloorPlan();
 };
 
 const openEditTableM = id => {
   const t = (G('tables') || []).find(x => x.id === id);
   if (!t) return;
-  modal(`<div class="modal-t">تعديل طاولة ${t.number}</div>
-    <div class="fgr">
-      <div class="fg"><label>الرقم</label><input type="number" id="etNum" value="${t.number}"></div>
-      <div class="fg"><label>السعة</label><input type="number" id="etCap" value="${t.capacity}" min="1"></div>
+  modal(`
+    <div class="modal-title">تعديل طاولة ${t.number}</div>
+    <div class="form-row">
+      <div class="input-group"><label>الرقم</label><div class="input-wrap"><input type="number" id="etNum" value="${t.number}"></div></div>
+      <div class="input-group"><label>السعة</label><div class="input-wrap"><input type="number" id="etCap" value="${t.capacity}" min="1"></div></div>
     </div>
-    <div class="fg"><label>الشكل</label>
+    <div class="input-group"><label>الشكل</label><div class="input-wrap">
       <select id="etShape">
         <option value="square" ${t.shape === 'square' ? 'selected' : ''}>مربع</option>
         <option value="rect" ${t.shape === 'rect' ? 'selected' : ''}>مستطيل</option>
         <option value="round" ${t.shape === 'round' ? 'selected' : ''}>دائري</option>
       </select>
-    </div>
-    <div class="modal-ft">
-      <button class="btn b-ghost" onclick="closeM()">إلغاء</button>
-      <button class="btn b-amber" onclick="saveEditTable(${id})">حفظ</button>
+    </div></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM()">إلغاء</button>
+      <button class="btn btn-gold" onclick="saveEditTable(${id})">${ic('save')}<span>حفظ</span></button>
     </div>`);
 };
 const saveEditTable = id => {
@@ -559,28 +645,27 @@ const saveEditTable = id => {
     capacity: parseInt(document.getElementById('etCap').value),
     shape: document.getElementById('etShape').value,
   });
-  toast('✓ تم التعديل'); closeM(); renderFloorPlan();
+  toast('تم التعديل'); closeM(); renderFloorPlan();
 };
 
 const confirmDelTable = id => {
   const t = (G('tables') || []).find(x => x.id === id);
-  modal(`<div class="modal-t">حذف طاولة ${t?.number}</div>
-    <p style="color:var(--muted);font-size:.82rem;margin-bottom:18px">هل أنت متأكد؟</p>
-    <div class="modal-ft">
-      <button class="btn b-ghost" onclick="closeM()">إلغاء</button>
-      <button class="btn b-rose" onclick="doDelTable(${id})">حذف</button>
+  modal(`
+    <div class="modal-title">حذف طاولة ${t?.number}</div>
+    <div class="modal-subtitle">هل أنت متأكد؟ لا يمكن التراجع عن هذا الإجراء.</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM()">إلغاء</button>
+      <button class="btn btn-danger" onclick="doDelTable(${id})">${ic('trash-2')}<span>حذف</span></button>
     </div>`);
 };
 const doDelTable = id => {
   const t = (G('tables') || []).find(x => x.id === id);
   DL('tables', id);
-  addA(`حذف طاولة ${t?.number}`, '#e84060');
-  toast('✓ تم الحذف'); closeM(); fpClearSelection(); renderFloorPlan();
+  addA(`حذف طاولة ${t?.number}`, '#F04F4F');
+  toast('تم الحذف'); closeM(); fpClearSelection(); renderFloorPlan();
 };
 
-/* ══════════════════════════════════════════════════════════
-   7. SESSIONS & POS (cash only, no stock tracking)
-══════════════════════════════════════════════════════════ */
+/* ───── SESSIONS ──────────────────────────────────────────────── */
 const startSess = id => {
   if (!can('startSession')) { toast('لا صلاحية', 'err'); return; }
   const tbls = G('tables') || [], t = tbls.find(x => x.id === id);
@@ -589,13 +674,13 @@ const startSess = id => {
   const s = { id: NI('sessions'), tableId: id, startTime: new Date().toISOString(), lastOrderTime: null, total: 0, staffId: CU?.id };
   sess.push(s); S('sessions', sess);
   UP('tables', id, { status: 'occupied', sessionId: s.id });
-  addA(`بدء جلسة طاولة ${t.number}`, '#00bfa5');
+  addA(`بدء جلسة طاولة ${t.number}`, '#2DD4BF');
   toast(`تم بدء جلسة الطاولة ${t.number}`);
   renderFloorPlan();
   setTimeout(() => fpSelectTable(id), 100);
 };
 
-const endSess = (tableId) => {
+const endSess = tableId => {
   const tbls = G('tables') || [], sess = G('sessions') || [], t = tbls.find(x => x.id === tableId);
   if (!t) return;
   const s = sess.find(x => x.id === t.sessionId);
@@ -611,18 +696,20 @@ const endSess = (tableId) => {
   S('invoices', inv);
   S('sessions', sess.filter(x => x.id !== s.id));
   UP('tables', tableId, { status: 'free', sessionId: null });
-  addA(`تسديد طاولة ${t.number} — ${fC(grand)}`, '#e84060');
-  toast(`✓ تم التسديد: ${fC(grand)}`);
+  addA(`تسديد طاولة ${t.number} — ${fC(grand)}`, '#D4AF37');
+  toast(`تم التسديد: ${fC(grand)}`);
   closePOS(); fpClearSelection(); renderFloorPlan();
 };
 
 const requestBill = tableId => {
   const t = (G('tables') || []).find(x => x.id === tableId);
-  addA(`النادل طلب فاتورة للطاولة ${t?.number}`, '#3d9cf0');
-  toast('✓ تم إرسال طلب الفاتورة للكاشير');
+  addA(`طلب فاتورة طاولة ${t?.number}`, '#60A5FA');
+  toast('تم إرسال طلب الفاتورة للكاشير');
 };
 
+/* ───── POS ───────────────────────────────────────────────────── */
 let pTbl = null, pItm = {}, pChk = false;
+
 const openPOS = (tableId, chk = false) => {
   if (chk && !can('pay')) { toast('لا صلاحية للدفع', 'err'); return; }
   if (!chk && !can('addOrder')) { toast('لا صلاحية', 'err'); return; }
@@ -635,39 +722,61 @@ const openPOS = (tableId, chk = false) => {
   document.getElementById('posSnd').style.display = chk ? 'none' : '';
   document.getElementById('posRh').textContent = chk ? 'طلبات الجلسة' : 'الطلب الحالي';
   const mb = document.getElementById('pMnBtn');
-  if (chk) { mb.textContent = '💵 تسديد نقداً'; mb.className = 'pos-main-btn pmb-pay'; }
-  else { mb.textContent = '↑ إرسال للمطبخ'; mb.className = 'pos-main-btn pmb-send'; }
-  renderPProds(); renderPOrd();
+  if (chk) mb.innerHTML = `${ic('credit-card')}<span>تسديد نقداً</span>`;
+  else mb.innerHTML = `${ic('send')}<span>إرسال للمطبخ</span>`;
+  document.getElementById('posSearch').value = '';
+  renderPProds(''); renderPOrd();
   document.getElementById('posPanel').style.display = 'flex';
+  refreshIcons();
 };
-const closePOS = () => { document.getElementById('posPanel').style.display = 'none'; pTbl = null; pItm = {}; };
+const closePOS = () => {
+  document.getElementById('posPanel').style.display = 'none';
+  pTbl = null; pItm = {};
+};
 
-const renderPProds = (cat = '') => {
+let currentPosCat = '';
+const renderPProds = cat => {
+  if (cat !== undefined) currentPosCat = cat;
   const pr = G('products') || [];
+  const search = (document.getElementById('posSearch')?.value || '').toLowerCase();
   const cats = [...new Set(pr.map(p => p.category))];
-  document.getElementById('pCats').innerHTML = `<button class="c-pill${!cat ? ' on' : ''}" onclick="renderPProds('')">الكل</button>` + cats.map(c => `<button class="c-pill${cat === c ? ' on' : ''}" onclick="renderPProds('${c}')">${c}</button>`).join('');
-  const lst = cat ? pr.filter(p => p.category === cat) : pr;
+
+  document.getElementById('pCats').innerHTML =
+    `<button class="cat-pill${!currentPosCat ? ' on' : ''}" onclick="renderPProds('')">الكل</button>` +
+    cats.map(c => `<button class="cat-pill${currentPosCat === c ? ' on' : ''}" onclick="renderPProds('${escapeHtml(c)}')">${escapeHtml(c)}</button>`).join('');
+
+  let lst = currentPosCat ? pr.filter(p => p.category === currentPosCat) : pr;
+  if (search) lst = lst.filter(p => p.name.toLowerCase().includes(search) || (p.code || '').includes(search));
+
   document.getElementById('pGrid').innerHTML = lst.length ? lst.map(p => {
     const img = p.image
-      ? `<img src="${p.image}" alt="${p.name}">`
-      : `<span>${p.emoji || '🍽'}</span>`;
-    return `<div class="pr-c" onclick="addOrd(${p.id})">
-      <div class="pr-img">${img}</div>
-      <div class="pr-info">
-        <div class="pr-code">#${p.code || '—'}</div>
-        <div class="pr-nm">${p.name}</div>
-        <div class="pr-pr">${fC(p.price)}</div>
+      ? `<img src="${p.image}" alt="">`
+      : `<i data-lucide="image-off" class="no-img"></i>`;
+    return `<div class="pos-product" onclick="addOrd(${p.id})">
+      <div class="pos-product-img">${img}</div>
+      <div class="pos-product-body">
+        <div class="pos-product-code">${escapeHtml(p.code || '—')}</div>
+        <div class="pos-product-name">${escapeHtml(p.name)}</div>
+        <div class="pos-product-price">${fC(p.price)}</div>
       </div>
     </div>`;
-  }).join('') : '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;font-size:.82rem">لا توجد منتجات</div>';
+  }).join('') : `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-3);font-size:13px;">${ic('search-x', 36)}<div style="margin-top:12px;">لا توجد منتجات</div></div>`;
+  refreshIcons();
 };
 
 const addOrd = id => {
   const p = (G('products') || []).find(x => x.id === id);
   if (!p) return;
   pItm[id] ? pItm[id].qty++ : (pItm[id] = { ...p, qty: 1 });
+  const cartHdr = document.querySelector('.cart-header');
+  if (cartHdr) {
+    cartHdr.classList.remove('bump');
+    void cartHdr.offsetWidth;
+    cartHdr.classList.add('bump');
+  }
   renderPOrd();
 };
+
 const chgQ = (id, d) => {
   if (!pItm[id]) return;
   pItm[id].qty += d;
@@ -686,15 +795,25 @@ const renderPOrd = () => {
     if (s) {
       const ords = (G('orders') || []).filter(o => o.sessionId === s.id);
       ords.forEach(o => (o.items || []).forEach(it => {
-        html += `<div class="oi oi-old"><div class="oi-nm">${it.emoji || ''} ${it.name}</div><span class="qn">×${it.qty}</span><div class="oi-sub">${fC(it.price * it.qty)}</div></div>`;
+        html += `<div class="cart-item old"><div class="cart-item-name">${escapeHtml(it.name)}</div><div class="qty-num">×${it.qty}</div><div class="cart-item-sub">${fC(it.price * it.qty)}</div></div>`;
       }));
     }
   }
   if (newItems.length) {
-    html += newItems.map(x => `<div class="oi"><div class="oi-nm">${x.emoji || ''} ${x.name}</div><div class="qc"><button class="qb" onclick="chgQ(${x.id},-1)">−</button><span class="qn">${x.qty}</span><button class="qb" onclick="chgQ(${x.id},1)">+</button></div><div class="oi-sub">${fC(x.price * x.qty)}</div></div>`).join('');
+    html += newItems.map(x => `
+      <div class="cart-item">
+        <div class="cart-item-name">${escapeHtml(x.name)}</div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="chgQ(${x.id},-1)">${ic('minus', 12)}</button>
+          <span class="qty-num">${x.qty}</span>
+          <button class="qty-btn" onclick="chgQ(${x.id},1)">${ic('plus', 12)}</button>
+        </div>
+        <div class="cart-item-sub">${fC(x.price * x.qty)}</div>
+      </div>`).join('');
   }
-  if (!html) html = '<div style="text-align:center;color:var(--muted);padding:28px 0;font-size:.77rem">اضغط على منتج</div>';
+  if (!html) html = `<div class="cart-empty">${ic('shopping-bag', 36)}<div style="margin-top:10px;">اضغط على منتج لإضافته</div></div>`;
   el.innerHTML = html;
+  refreshIcons();
 
   const i = G('ri') || {}, tax = (i.tax || 0) / 100;
   let sub = newItems.reduce((s, x) => s + x.price * x.qty, 0);
@@ -726,20 +845,18 @@ const sendOrd = () => {
   const uT = (G('tables') || []).find(x => x.id === pTbl), sess = G('sessions') || [];
   const s = sess.find(x => x.id === uT?.sessionId);
   if (!s) { toast('لا توجد جلسة نشطة', 'err'); return; }
-
   const ords = G('orders') || [], tot = it.reduce((s, x) => s + x.price * x.qty, 0);
   const orderId = NI('orders');
   ords.push({
     id: orderId, sessionId: s.id, tableId: pTbl, tableNumber: uT.number,
-    items: it.map(x => ({ productId: x.id, name: x.name, qty: x.qty, price: x.price, cost: x.cost, emoji: x.emoji, code: x.code })),
+    items: it.map(x => ({ productId: x.id, name: x.name, qty: x.qty, price: x.price, cost: x.cost, code: x.code })),
     total: tot, status: 'pending',
     orderTime: new Date().toISOString(), staffId: CU?.id
   });
   S('orders', ords);
   UP('sessions', s.id, { total: (s.total || 0) + tot, lastOrderTime: new Date().toISOString() });
-
-  addA(`طلب — طاولة ${uT.number} (${it.length} أصناف)`, '#8892a4');
-  toast(`✓ تم إرسال ${it.length} صنف للمطبخ`);
+  addA(`طلب — طاولة ${uT.number} (${it.length} أصناف)`, '#A78BFA');
+  toast(`تم إرسال ${it.length} صنف للمطبخ`);
   closePOS(); renderFloorPlan();
 };
 
@@ -751,10 +868,9 @@ const checkout = () => {
   endSess(pTbl);
 };
 
-/* ══════════════════════════════════════════════════════════
-   8. KITCHEN
-══════════════════════════════════════════════════════════ */
+/* ───── KITCHEN ───────────────────────────────────────────────── */
 let kitTimer = null;
+
 const renderKitchen = () => {
   const ords = G('orders') || [];
   const pnd = ords.filter(o => o.status === 'pending');
@@ -764,18 +880,24 @@ const renderKitchen = () => {
       const elapsed = Math.floor((Date.now() - new Date(o.orderTime)) / 1000);
       const em = Math.floor(elapsed / 60), es = elapsed % 60;
       const isLate = em >= 15;
-      return `<div class="kc ${isLate ? 'late' : ''}">
-        <div class="kc-hd">
-          <div><div class="kc-tbl">طاولة ${o.tableNumber || '—'}</div><div class="kc-elapsed">⏱ ${em}د ${String(es).padStart(2, '0')}ث</div></div>
-          <div class="kc-tm">${fT(o.orderTime)}</div>
+      return `<div class="kitchen-ticket ${isLate ? 'late' : ''}">
+        <div class="ticket-header">
+          <div>
+            <div class="ticket-table">طاولة ${o.tableNumber || '—'}</div>
+            <div class="ticket-elapsed">${em}:${String(es).padStart(2,'0')}</div>
+          </div>
+          <div class="ticket-time">${fT(o.orderTime)}</div>
         </div>
-        <div class="kc-body">${(o.items || []).map(it => `<div class="ki"><span class="ki-nm">${it.emoji || ''} ${it.name}</span><span class="ki-q">×${it.qty}</span></div>`).join('')}</div>
-        <div class="kc-ft">
-          <span class="kc-pnd">${isLate ? '⚠ متأخر' : '⏳ قيد التحضير'}</span>
-          ${can('markReady') ? `<button class="btn b-teal b-sm" onclick="mReady(${o.id})">✓ جاهز</button>` : ''}
+        <div class="ticket-body">
+          ${(o.items || []).map(it => `<div class="ticket-item"><span class="ticket-item-name">${escapeHtml(it.name)}</span><span class="ticket-qty">×${it.qty}</span></div>`).join('')}
+        </div>
+        <div class="ticket-footer">
+          <span class="ticket-status">${ic(isLate ? 'alert-triangle' : 'clock')}${isLate ? 'متأخر' : 'قيد التحضير'}</span>
+          ${can('markReady') ? `<button class="btn btn-teal btn-sm" onclick="mReady(${o.id})">${ic('check')}<span>جاهز</span></button>` : ''}
         </div>
       </div>`;
-    }).join('') : `<div class="k-empty"><div class="k-ei">🍽</div><div>لا توجد طلبات معلقة</div></div>`;
+    }).join('') : `<div class="kitchen-empty">${ic('utensils-crossed', 56)}<div>لا توجد طلبات معلقة</div></div>`;
+    refreshIcons();
   };
   renderCards();
   if (kitTimer) clearInterval(kitTimer);
@@ -783,37 +905,32 @@ const renderKitchen = () => {
     if (document.getElementById('kitchen').classList.contains('active')) renderCards();
   }, 1000);
 };
+
 const mReady = id => {
   if (!can('markReady')) { toast('لا صلاحية', 'err'); return; }
   UP('orders', id, { status: 'ready', readyTime: new Date().toISOString() });
-  addA(`طلب رقم ${id} — جاهز`, '#00bfa5');
-  toast('✓ الطلب جاهز للتقديم');
+  addA(`طلب #${id} — جاهز`, '#2DD4BF');
+  toast('الطلب جاهز للتقديم');
   renderKitchen();
 };
 
-/* ══════════════════════════════════════════════════════════
-   9. PRODUCTS (with image support)
-══════════════════════════════════════════════════════════ */
-
-/* Compress and convert image to Base64 */
-const compressImage = (file, maxWidth = 400, maxHeight = 400, quality = 0.8) => {
-  return new Promise((resolve, reject) => {
-    if (!file) { reject('No file'); return; }
+/* ───── PRODUCTS ──────────────────────────────────────────────── */
+const compressImage = (file, maxW = 500, maxH = 500, quality = 0.82) =>
+  new Promise((resolve, reject) => {
+    if (!file) return reject('No file');
     const reader = new FileReader();
     reader.onload = e => {
       const img = new Image();
       img.onload = () => {
         let w = img.width, h = img.height;
-        if (w > maxWidth || h > maxHeight) {
-          const ratio = Math.min(maxWidth / w, maxHeight / h);
-          w = Math.round(w * ratio);
-          h = Math.round(h * ratio);
+        if (w > maxW || h > maxH) {
+          const r = Math.min(maxW / w, maxH / h);
+          w = Math.round(w * r); h = Math.round(h * r);
         }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL('image/jpeg', quality));
       };
       img.onerror = () => reject('Invalid image');
       img.src = e.target.result;
@@ -821,7 +938,6 @@ const compressImage = (file, maxWidth = 400, maxHeight = 400, quality = 0.8) => 
     reader.onerror = () => reject('Read error');
     reader.readAsDataURL(file);
   });
-};
 
 const renderProds = () => {
   const pr = G('products') || [];
@@ -829,12 +945,10 @@ const renderProds = () => {
   const catSel = document.getElementById('prodFilterCat');
   if (catSel) {
     const cur = catSel.value;
-    catSel.innerHTML = `<option value="">كل الفئات</option>` + cats.map(c => `<option value="${c}" ${c === cur ? 'selected' : ''}>${c}</option>`).join('');
+    catSel.innerHTML = `<option value="">كل الفئات</option>` + cats.map(c => `<option value="${escapeHtml(c)}" ${c === cur ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
   }
-
   const search = (document.getElementById('prodSearch')?.value || '').toLowerCase();
   const fcat = document.getElementById('prodFilterCat')?.value || '';
-
   let filtered = pr.filter(p => {
     if (search && !p.name.toLowerCase().includes(search) && !(p.code || '').toLowerCase().includes(search)) return false;
     if (fcat && p.category !== fcat) return false;
@@ -842,106 +956,103 @@ const renderProds = () => {
   });
 
   const body = document.getElementById('prodBd');
-  if (!filtered.length) { body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px">لا توجد منتجات</td></tr>'; return; }
-
+  if (!filtered.length) {
+    body.innerHTML = `<tr><td colspan="8"><div class="empty-state">${ic('package-x', 48)}<div class="empty-state-title">لا توجد منتجات</div></div></td></tr>`;
+    refreshIcons();
+    return;
+  }
   body.innerHTML = filtered.map(p => {
     const profit = (p.price || 0) - (p.cost || 0);
     const margin = p.price ? Math.round((profit / p.price) * 100) : 0;
-    const img = p.image
-      ? `<img src="${p.image}" alt="${p.name}">`
-      : `<span>${p.emoji || '🍽'}</span>`;
+    const img = p.image ? `<img src="${p.image}" alt="">` : ic('image-off');
     return `<tr>
-      <td><span class="prod-code">#${p.code || '—'}</span></td>
+      <td><span class="prod-code">${escapeHtml(p.code || '—')}</span></td>
       <td><div class="prod-thumb">${img}</div></td>
-      <td><strong style="color:#fff">${p.name}</strong>${p.category ? `<div><span class="bdg b-m" style="margin-top:4px;font-size:.6rem">${p.category}</span></div>` : ''}</td>
-      <td><span class="bdg b-m">${p.category || '—'}</span></td>
-      <td style="color:var(--muted)">${(p.cost || 0).toLocaleString()}</td>
-      <td style="color:var(--amber);font-weight:700">${(p.price || 0).toLocaleString()}</td>
-      <td><strong style="color:var(--teal)">${profit.toLocaleString()}</strong><div style="font-size:.68rem;color:var(--muted);margin-top:2px;">${margin}%</div></td>
-      <td><div style="display:flex;gap:4px">
-        <button class="btn b-ghost b-sm" onclick="openProdM(${p.id})">✏</button>
-        <button class="btn b-rose b-sm" onclick="confDel('products',${p.id},'${p.name.replace(/'/g, "\\'")}')">🗑</button>
+      <td><div class="prod-name">${escapeHtml(p.name)}</div></td>
+      <td><span class="badge badge-muted">${escapeHtml(p.category || '—')}</span></td>
+      <td class="prod-num" style="color:var(--text-2)">${(p.cost || 0).toLocaleString()}</td>
+      <td class="prod-num" style="color:var(--gold);font-weight:700;">${(p.price || 0).toLocaleString()}</td>
+      <td class="prod-num"><strong style="color:var(--teal);">${profit.toLocaleString()}</strong><div style="font-size:11px;color:var(--text-3);margin-top:2px;">${margin}%</div></td>
+      <td><div style="display:flex;gap:6px;justify-content:flex-end;">
+        <button class="btn btn-ghost btn-sm" onclick="openProdM(${p.id})">${ic('edit-3')}</button>
+        <button class="btn btn-danger btn-sm" onclick="confDel('products',${p.id},'${escapeHtml(p.name).replace(/'/g,"\\'")}')">${ic('trash-2')}</button>
       </div></td>
     </tr>`;
   }).join('');
+  refreshIcons();
 };
 
-let tempImageData = null; // holds uploaded image during modal session
+let tempImageData = null;
 
 const openProdM = (id = null) => {
   const pr = G('products') || [];
   const p = id ? pr.find(x => x.id === id) : null;
   tempImageData = p?.image || null;
-
   const cats = ['رئيسي', 'جانبي', 'مشروبات', 'حلويات', 'مقبلات'];
-  const emjs = ['🌯', '🍔', '🍢', '🍟', '🥤', '🍮', '🍊', '🥗', '🍕', '🍜', '🍖', '🥘'];
-
-  // Auto-generate next code
   let nextCode = p?.code || '';
   if (!id) {
-    const maxCode = pr.reduce((max, x) => {
-      const n = parseInt(x.code || '0');
-      return n > max ? n : max;
-    }, 0);
+    const maxCode = pr.reduce((max, x) => { const n = parseInt(x.code || '0'); return n > max ? n : max; }, 0);
     nextCode = String(maxCode + 1).padStart(3, '0');
   }
 
-  modalWide(`<div class="modal-t">${p ? 'تعديل منتج' : 'إضافة منتج جديد'}</div>
+  modalWide(`
+    <div class="modal-title">${p ? 'تعديل منتج' : 'إضافة منتج جديد'}</div>
+    <div class="modal-subtitle">املأ بيانات المنتج واختر صورة للعرض</div>
 
-    <div style="display:grid;grid-template-columns:200px 1fr;gap:20px;">
+    <div style="display:grid;grid-template-columns:220px 1fr;gap:24px;">
       <div>
-        <label style="display:block;font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">صورة المنتج</label>
-        <div class="img-upload-box ${tempImageData ? 'has-img' : ''}" id="imgBox" onclick="document.getElementById('imgFile').click()">
-          ${tempImageData ? `<img src="${tempImageData}" alt=""><button class="img-remove-btn" onclick="removeProdImage(event)">✕</button>` : `<div class="img-upload-placeholder"><div class="img-upload-placeholder-ic">📷</div><div>اضغط لاختيار صورة</div><div style="font-size:.7rem;margin-top:4px;opacity:.7">JPG, PNG (حد أقصى 2MB)</div></div>`}
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:8px;">صورة المنتج</label>
+        <div class="img-upload ${tempImageData ? 'has-img' : ''}" id="imgBox" onclick="document.getElementById('imgFile').click()">
+          ${tempImageData
+            ? `<img src="${tempImageData}" alt=""><button class="img-remove" onclick="removeProdImage(event)">${ic('x')}</button>`
+            : `<div class="img-placeholder">${ic('upload-cloud', 32)}<div class="img-placeholder-text">اختر صورة</div><div class="img-placeholder-hint">JPG / PNG · حتى 2MB</div></div>`}
         </div>
         <input type="file" id="imgFile" accept="image/*" style="display:none" onchange="handleProdImage(event)">
       </div>
 
       <div>
-        <div class="fgr">
-          <div class="fg"><label>رقم المنتج</label><input id="pCode" value="${nextCode}" placeholder="001"></div>
-          <div class="fg"><label>الأيقونة الاحتياطية</label><select id="pE">${emjs.map(e => `<option value="${e}" ${p?.emoji === e ? 'selected' : ''}>${e}</option>`).join('')}</select></div>
+        <div class="form-row">
+          <div class="input-group"><label>رقم المنتج</label><div class="input-wrap"><input id="pCode" value="${escapeHtml(nextCode)}" placeholder="001"></div></div>
+          <div class="input-group"><label>الفئة</label><div class="input-wrap"><select id="pCat">${cats.map(c => `<option value="${c}" ${p?.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div></div>
         </div>
-        <div class="fg"><label>اسم المنتج</label><input id="pN" value="${p?.name || ''}" placeholder="مثال: شاورما دجاج"></div>
-        <div class="fg"><label>الفئة</label><select id="pCat">${cats.map(c => `<option value="${c}" ${p?.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
-        <div class="fgr">
-          <div class="fg"><label>سعر التكلفة</label><input type="number" id="pC" value="${p?.cost || ''}" placeholder="0"></div>
-          <div class="fg"><label>سعر البيع</label><input type="number" id="pP" value="${p?.price || ''}" placeholder="0"></div>
+        <div class="input-group"><label>اسم المنتج</label><div class="input-wrap"><input id="pN" value="${escapeHtml(p?.name || '')}" placeholder="مثال: شاورما دجاج"></div></div>
+        <div class="form-row">
+          <div class="input-group"><label>سعر التكلفة</label><div class="input-wrap"><input type="number" id="pC" value="${p?.cost || ''}" placeholder="0"></div></div>
+          <div class="input-group"><label>سعر البيع</label><div class="input-wrap"><input type="number" id="pP" value="${p?.price || ''}" placeholder="0"></div></div>
         </div>
       </div>
     </div>
 
-    <div class="modal-ft">
-      <button class="btn b-ghost" onclick="closeM()">إلغاء</button>
-      <button class="btn b-amber" onclick="saveProd(${id || 'null'})">حفظ</button>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM()">إلغاء</button>
+      <button class="btn btn-gold" onclick="saveProd(${id || 'null'})">${ic('save')}<span>حفظ</span></button>
     </div>`);
 };
 
-const handleProdImage = async (e) => {
+const handleProdImage = async e => {
   const file = e.target.files[0];
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) {
-    toast('حجم الصورة كبير جداً (الحد الأقصى 2MB)', 'err');
-    return;
-  }
+  if (file.size > 2 * 1024 * 1024) { toast('حجم الصورة كبير (الحد 2MB)', 'err'); return; }
   try {
     tempImageData = await compressImage(file);
     const box = document.getElementById('imgBox');
     box.classList.add('has-img');
-    box.innerHTML = `<img src="${tempImageData}" alt=""><button class="img-remove-btn" onclick="removeProdImage(event)">✕</button>`;
-    toast('✓ تم تحميل الصورة');
-  } catch (err) {
+    box.innerHTML = `<img src="${tempImageData}" alt=""><button class="img-remove" onclick="removeProdImage(event)">${ic('x')}</button>`;
+    refreshIcons();
+    toast('تم تحميل الصورة');
+  } catch {
     toast('فشل تحميل الصورة', 'err');
   }
 };
 
-const removeProdImage = (e) => {
+const removeProdImage = e => {
   e.stopPropagation();
   tempImageData = null;
   const box = document.getElementById('imgBox');
   box.classList.remove('has-img');
-  box.innerHTML = `<div class="img-upload-placeholder"><div class="img-upload-placeholder-ic">📷</div><div>اضغط لاختيار صورة</div><div style="font-size:.7rem;margin-top:4px;opacity:.7">JPG, PNG (حد أقصى 2MB)</div></div>`;
+  box.innerHTML = `<div class="img-placeholder">${ic('upload-cloud', 32)}<div class="img-placeholder-text">اختر صورة</div><div class="img-placeholder-hint">JPG / PNG · حتى 2MB</div></div>`;
   document.getElementById('imgFile').value = '';
+  refreshIcons();
 };
 
 const saveProd = id => {
@@ -949,89 +1060,112 @@ const saveProd = id => {
   const code = document.getElementById('pCode').value.trim();
   if (!name) { toast('أدخل اسم المنتج', 'err'); return; }
   if (!code) { toast('أدخل رقم المنتج', 'err'); return; }
-
-  // Validate unique code
   const existing = (G('products') || []).find(x => x.code === code && x.id !== id);
-  if (existing) { toast(`رقم المنتج #${code} مستخدم مسبقاً`, 'err'); return; }
-
+  if (existing) { toast(`الرقم ${code} مستخدم مسبقاً`, 'err'); return; }
   const d = {
-    code,
-    name,
-    emoji: document.getElementById('pE').value,
+    code, name,
     cost: parseFloat(document.getElementById('pC').value) || 0,
     price: parseFloat(document.getElementById('pP').value) || 0,
     category: document.getElementById('pCat').value,
     image: tempImageData,
   };
-
-  if (id) { UP('products', id, d); toast('✓ تم التعديل'); }
-  else { const a = G('products') || []; a.push({ id: NI('products'), ...d }); S('products', a); toast('✓ تمت الإضافة'); }
-
-  addA(`${id ? 'تعديل' : 'إضافة'} منتج: ${name}`, '#a855f7');
+  if (id) { UP('products', id, d); toast('تم التعديل'); }
+  else { const a = G('products') || []; a.push({ id: NI('products'), ...d }); S('products', a); toast('تمت الإضافة'); }
+  addA(`${id ? 'تعديل' : 'إضافة'} منتج: ${name}`, '#A78BFA');
   tempImageData = null;
   closeM();
   renderProds();
 };
 
-/* ══════════════════════════════════════════════════════════
-   10. RESERVATIONS
-══════════════════════════════════════════════════════════ */
+/* ───── RESERVATIONS ──────────────────────────────────────────── */
 const renderRes = () => {
   const res = G('reservations') || [], tbls = G('tables') || [];
   const el = document.getElementById('resLst');
-  if (!res.length) { el.innerHTML = '<div class="empty-state"><div class="empty-state-ic">📅</div><div>لا توجد حجوزات</div></div>'; return; }
+  if (!res.length) {
+    el.innerHTML = `<div class="empty-state">${ic('calendar-x', 48)}<div class="empty-state-title">لا توجد حجوزات</div></div>`;
+    refreshIcons();
+    return;
+  }
   const srt = [...res].sort((a, b) => a.date > b.date ? 1 : a.date < b.date ? -1 : a.time > b.time ? 1 : -1);
-  const scls = { confirmed: 'b-t', pending: 'b-a', cancelled: 'b-r' };
+  const scls = { confirmed: 'badge-teal', pending: 'badge-gold', cancelled: 'badge-red' };
   const slbl = { confirmed: 'مؤكد', pending: 'معلق', cancelled: 'ملغي' };
   el.innerHTML = srt.map(r => {
     const t = tbls.find(x => x.id === r.tableId);
-    return `<div class="rc">
-      <div class="rt-box"><div class="rt-h">${r.time}</div><div class="rt-d">${r.date}</div></div>
-      <div class="ri"><div class="ri-nm">${r.customerName}</div><div class="ri-det">${r.phone} · ${t ? 'طاولة ' + t.number : '—'} · ${r.guests} أشخاص${r.notes ? ` · ${r.notes}` : ''}</div></div>
-      <div class="ra">
-        <span class="bdg ${scls[r.status] || 'b-m'}">${slbl[r.status] || r.status}</span>
-        <div style="display:flex;gap:5px"><button class="btn b-ghost b-sm" onclick="openResM(${r.id})">تعديل</button><button class="btn b-rose b-sm" onclick="confDel('reservations',${r.id},'${r.customerName.replace(/'/g, "\\'")}')">حذف</button></div>
+    return `<div class="reservation-card">
+      <div class="res-time-box">
+        <div class="res-time">${r.time}</div>
+        <div class="res-date">${r.date}</div>
+      </div>
+      <div class="res-info">
+        <div class="res-name">${escapeHtml(r.customerName)}</div>
+        <div class="res-meta">
+          <span>${ic('phone', 12)} ${escapeHtml(r.phone)}</span>
+          <span>${ic('armchair', 12)} ${t ? 'طاولة ' + t.number : '—'}</span>
+          <span>${ic('users', 12)} ${r.guests}</span>
+          ${r.notes ? `<span>${ic('file-text', 12)} ${escapeHtml(r.notes)}</span>` : ''}
+        </div>
+      </div>
+      <div class="res-actions">
+        <span class="badge ${scls[r.status] || 'badge-muted'}">${slbl[r.status] || r.status}</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="openResM(${r.id})">${ic('edit-3')}</button>
+          <button class="btn btn-danger btn-sm" onclick="confDel('reservations',${r.id},'${escapeHtml(r.customerName).replace(/'/g,"\\'")}')">${ic('trash-2')}</button>
+        </div>
       </div>
     </div>`;
   }).join('');
+  refreshIcons();
 };
+
 const openResM = (id = null) => {
   const res = G('reservations') || [], tbls = G('tables') || [], r = id ? res.find(x => x.id === id) : null;
-  modal(`<div class="modal-t">${r ? 'تعديل الحجز' : 'حجز جديد'}</div>
-    <div class="fgr">
-      <div class="fg"><label>اسم العميل</label><input id="rN" value="${r?.customerName || ''}"></div>
-      <div class="fg"><label>الهاتف</label><input id="rPh" value="${r?.phone || ''}"></div>
+  modal(`
+    <div class="modal-title">${r ? 'تعديل الحجز' : 'حجز جديد'}</div>
+    <div class="modal-subtitle">املأ بيانات العميل ووقت الحجز</div>
+    <div class="form-row">
+      <div class="input-group"><label>اسم العميل</label><div class="input-wrap"><input id="rN" value="${escapeHtml(r?.customerName || '')}"></div></div>
+      <div class="input-group"><label>الهاتف</label><div class="input-wrap"><input id="rPh" value="${escapeHtml(r?.phone || '')}"></div></div>
     </div>
-    <div class="fgr">
-      <div class="fg"><label>التاريخ</label><input type="date" id="rD" value="${r?.date || td()}"></div>
-      <div class="fg"><label>الوقت</label><input type="time" id="rT" value="${r?.time || '12:00'}"></div>
+    <div class="form-row">
+      <div class="input-group"><label>التاريخ</label><div class="input-wrap"><input type="date" id="rD" value="${r?.date || td()}"></div></div>
+      <div class="input-group"><label>الوقت</label><div class="input-wrap"><input type="time" id="rT" value="${r?.time || '12:00'}"></div></div>
     </div>
-    <div class="fgr">
-      <div class="fg"><label>الطاولة</label><select id="rTb">${tbls.map(t => `<option value="${t.id}" ${r?.tableId === t.id ? 'selected' : ''}>طاولة ${t.number}</option>`).join('')}</select></div>
-      <div class="fg"><label>الأشخاص</label><input type="number" id="rG" value="${r?.guests || 2}" min="1"></div>
+    <div class="form-row">
+      <div class="input-group"><label>الطاولة</label><div class="input-wrap"><select id="rTb">${tbls.map(t => `<option value="${t.id}" ${r?.tableId === t.id ? 'selected' : ''}>طاولة ${t.number}</option>`).join('')}</select></div></div>
+      <div class="input-group"><label>عدد الأشخاص</label><div class="input-wrap"><input type="number" id="rG" value="${r?.guests || 2}" min="1"></div></div>
     </div>
-    <div class="fgr">
-      <div class="fg"><label>الحالة</label><select id="rSt"><option value="pending" ${r?.status === 'pending' ? 'selected' : ''}>معلق</option><option value="confirmed" ${r?.status === 'confirmed' ? 'selected' : ''}>مؤكد</option><option value="cancelled" ${r?.status === 'cancelled' ? 'selected' : ''}>ملغي</option></select></div>
-      <div class="fg"><label>ملاحظات</label><input id="rNt" value="${r?.notes || ''}"></div>
+    <div class="form-row">
+      <div class="input-group"><label>الحالة</label><div class="input-wrap"><select id="rSt"><option value="pending" ${r?.status === 'pending' ? 'selected' : ''}>معلق</option><option value="confirmed" ${r?.status === 'confirmed' ? 'selected' : ''}>مؤكد</option><option value="cancelled" ${r?.status === 'cancelled' ? 'selected' : ''}>ملغي</option></select></div></div>
+      <div class="input-group"><label>ملاحظات</label><div class="input-wrap"><input id="rNt" value="${escapeHtml(r?.notes || '')}"></div></div>
     </div>
-    <div class="modal-ft"><button class="btn b-ghost" onclick="closeM()">إلغاء</button><button class="btn b-amber" onclick="saveRes(${id || 'null'})">حفظ</button></div>`);
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM()">إلغاء</button>
+      <button class="btn btn-gold" onclick="saveRes(${id || 'null'})">${ic('save')}<span>حفظ</span></button>
+    </div>`);
 };
+
 const saveRes = id => {
   const nm = document.getElementById('rN').value.trim();
   if (!nm) { toast('أدخل اسم العميل', 'err'); return; }
-  const d = { customerName: nm, phone: document.getElementById('rPh').value.trim(), date: document.getElementById('rD').value, time: document.getElementById('rT').value, tableId: parseInt(document.getElementById('rTb').value), guests: parseInt(document.getElementById('rG').value) || 1, status: document.getElementById('rSt').value, notes: document.getElementById('rNt').value.trim() };
+  const d = {
+    customerName: nm,
+    phone: document.getElementById('rPh').value.trim(),
+    date: document.getElementById('rD').value,
+    time: document.getElementById('rT').value,
+    tableId: parseInt(document.getElementById('rTb').value),
+    guests: parseInt(document.getElementById('rG').value) || 1,
+    status: document.getElementById('rSt').value,
+    notes: document.getElementById('rNt').value.trim()
+  };
   if (id) { UP('reservations', id, d); toast('تم التعديل'); }
   else { const a = G('reservations') || []; a.push({ id: NI('reservations'), ...d }); S('reservations', a); toast('تمت الإضافة'); }
   closeM(); renderRes();
 };
 
-/* ══════════════════════════════════════════════════════════
-   11. FINANCIAL REPORTS (with profit calculation)
-══════════════════════════════════════════════════════════ */
-let cR = null;
-let currentRepTab = 'overview';
+/* ───── REPORTS ───────────────────────────────────────────────── */
+let cR = null, currentRepTab = 'overview';
 
-const setReportTab = (t) => {
+const setReportTab = t => {
   currentRepTab = t;
   document.querySelectorAll('[data-rtab]').forEach(x => x.classList.remove('on'));
   document.querySelector(`[data-rtab="${t}"]`)?.classList.add('on');
@@ -1046,24 +1180,18 @@ const renderReports = () => {
   setReportTab(currentRepTab === 'expenses' && !can('manageExpenses') ? 'overview' : currentRepTab);
 };
 
-/* Calculate profit per product: (price - cost) * qty sold */
 const calcProductProfits = () => {
-  const ords = G('orders') || [];
-  const prods = G('products') || [];
-  const stats = {}; // id -> {name, emoji, qtySold, revenue, profit}
-
+  const ords = G('orders') || [], prods = G('products') || [];
+  const stats = {};
   ords.forEach(o => (o.items || []).forEach(it => {
     const p = prods.find(x => x.id === it.productId);
     if (!p) return;
-    if (!stats[it.productId]) {
-      stats[it.productId] = { id: p.id, name: p.name, emoji: p.emoji, code: p.code, qtySold: 0, revenue: 0, profit: 0 };
-    }
+    if (!stats[it.productId]) stats[it.productId] = { id: p.id, name: p.name, code: p.code, qtySold: 0, revenue: 0, profit: 0 };
     stats[it.productId].qtySold += it.qty;
     stats[it.productId].revenue += (it.price || 0) * it.qty;
     const cost = it.cost !== undefined ? it.cost : (p.cost || 0);
     stats[it.productId].profit += ((it.price || 0) - cost) * it.qty;
   }));
-
   return Object.values(stats);
 };
 
@@ -1072,8 +1200,6 @@ const renderReportsOverview = () => {
   const tR = inv.reduce((s, i) => s + (i.grandTotal || 0), 0);
   const tD = inv.filter(i => i.date && i.date.startsWith(td())).reduce((s, i) => s + (i.grandTotal || 0), 0);
   const avg = inv.length ? Math.round(tR / inv.length) : 0;
-
-  // Calculate total profit from product margins
   const productStats = calcProductProfits();
   const totalGrossProfit = productStats.reduce((s, x) => s + x.profit, 0);
 
@@ -1082,55 +1208,62 @@ const renderReportsOverview = () => {
     const exp = G('expenses') || [];
     const tExp = exp.reduce((s, e) => s + (e.amount || 0), 0);
     const netProfit = totalGrossProfit - tExp;
-    statsHtml = `
-      <div class="stat s-teal"><div class="st-v">${fC(tR)}</div><div class="st-l">إجمالي الإيرادات</div></div>
-      <div class="stat s-purple"><div class="st-v">${fC(totalGrossProfit)}</div><div class="st-l">ربح المنتجات</div></div>
-      <div class="stat s-rose"><div class="st-v">${fC(tExp)}</div><div class="st-l">إجمالي المصروفات</div></div>
-      <div class="stat s-amber"><div class="st-v">${fC(netProfit)}</div><div class="st-l">صافي الربح</div></div>`;
+    statsHtml = buildStat('teal', 'trending-up', fC(tR), 'إجمالي الإيرادات') +
+                buildStat('purple', 'package', fC(totalGrossProfit), 'ربح المنتجات') +
+                buildStat('red', 'receipt', fC(tExp), 'إجمالي المصروفات') +
+                buildStat('gold', 'wallet', fC(netProfit), 'صافي الربح');
   } else {
-    statsHtml = `
-      <div class="stat s-teal"><div class="st-v">${fC(tR)}</div><div class="st-l">إجمالي الإيرادات</div></div>
-      <div class="stat s-amber"><div class="st-v">${inv.length}</div><div class="st-l">إجمالي الفواتير</div></div>
-      <div class="stat s-ember"><div class="st-v">${fC(avg)}</div><div class="st-l">متوسط الفاتورة</div></div>
-      <div class="stat s-sky"><div class="st-v">${fC(tD)}</div><div class="st-l">مبيعات اليوم</div></div>`;
+    statsHtml = buildStat('teal', 'trending-up', fC(tR), 'إجمالي الإيرادات') +
+                buildStat('gold', 'file-text', inv.length, 'إجمالي الفواتير') +
+                buildStat('blue', 'bar-chart-3', fC(avg), 'متوسط الفاتورة') +
+                buildStat('purple', 'calendar', fC(tD), 'مبيعات اليوم');
   }
   document.getElementById('repSt').innerHTML = statsHtml;
 
-  // Category pie
-  const ords = G('orders') || [];
-  const cm = {};
+  const ords = G('orders') || [], cm = {};
   ords.forEach(o => (o.items || []).forEach(it => {
     const p = (G('products') || []).find(x => x.id === it.productId);
     const c = p?.category || 'أخرى';
     cm[c] = (cm[c] || 0) + it.price * it.qty;
   }));
-
   const ctx = document.getElementById('cRep').getContext('2d');
   if (cR) cR.destroy();
   if (Object.keys(cm).length) {
     cR = new Chart(ctx, {
       type: 'doughnut',
-      data: { labels: Object.keys(cm), datasets: [{ data: Object.values(cm), backgroundColor: ['#f0a500', '#00bfa5', '#e05c2a', '#3d9cf0', '#e84060', '#a855f7'], borderColor: '#1e2330', borderWidth: 3 }] },
-      options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { color: '#8892a4', font: { family: 'IBM Plex Sans Arabic' }, padding: 12 } } } }
+      data: { labels: Object.keys(cm), datasets: [{
+        data: Object.values(cm),
+        backgroundColor: ['#D4AF37', '#2DD4BF', '#60A5FA', '#A78BFA', '#F04F4F', '#FBBF24'],
+        borderColor: '#131722', borderWidth: 3
+      }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '68%',
+        plugins: { legend: { position: 'bottom', labels: { color: '#8E9AAF', font: { family: 'Cairo', size: 12 }, padding: 14, boxWidth: 12, boxHeight: 12, usePointStyle: true } } }
+      }
     });
   }
 
-  // Invoices
   const srt = [...inv].sort((a, b) => new Date(b.date) - new Date(a.date));
-  document.getElementById('invLst').innerHTML = srt.length ? srt.slice(0, 15).map(i => `<div class="inv-row"><div><div class="inv-id">فاتورة #${i.id} — طاولة ${i.tableNumber || '—'}</div><div class="inv-m">${fT(i.date)} · ${fD(i.date)}</div></div><div style="text-align:left"><div class="inv-amt">${fC(i.grandTotal)}</div><span class="bdg b-m" style="font-size:.62rem">💵 نقداً</span></div></div>`).join('')
-    : '<div style="color:var(--muted);font-size:.77rem;text-align:center;padding:18px">لا توجد فواتير</div>';
+  document.getElementById('invLst').innerHTML = srt.length
+    ? srt.slice(0, 12).map(i => `<div class="invoice-row">
+        <div>
+          <div class="inv-title">فاتورة #${i.id} · طاولة ${i.tableNumber || '—'}</div>
+          <div class="inv-meta">${fT(i.date)} · ${fD(i.date)}</div>
+        </div>
+        <div class="inv-amount">${fC(i.grandTotal)}</div>
+      </div>`).join('')
+    : '<div style="text-align:center;padding:24px;color:var(--text-3);font-size:13px;">لا توجد فواتير</div>';
 
-  // Top profit products
   const byProfit = [...productStats].sort((a, b) => b.profit - a.profit).slice(0, 5);
-  document.getElementById('topProfit').innerHTML = byProfit.length ? byProfit.map((p, i) =>
-    `<div class="ir-rank-item"><div class="ir-rank-num">${i + 1}</div><div class="ir-rank-nm">${p.emoji || ''} ${p.name}</div><div class="ir-rank-val">${fC(p.profit)}</div></div>`
-  ).join('') : '<div style="color:var(--muted);text-align:center;padding:20px;font-size:.8rem">لا توجد بيانات بعد</div>';
+  document.getElementById('topProfit').innerHTML = byProfit.length
+    ? byProfit.map((p, i) => `<div class="rank-item"><div class="rank-num">${i + 1}</div><div class="rank-name">${escapeHtml(p.name)}</div><div class="rank-value">${fC(p.profit)}</div></div>`).join('')
+    : '<div style="text-align:center;padding:24px;color:var(--text-3);font-size:13px;">لا توجد بيانات</div>';
 
-  // Top sellers
   const bySales = [...productStats].sort((a, b) => b.qtySold - a.qtySold).slice(0, 5);
-  document.getElementById('topSellers').innerHTML = bySales.length ? bySales.map((p, i) =>
-    `<div class="ir-rank-item"><div class="ir-rank-num">${i + 1}</div><div class="ir-rank-nm">${p.emoji || ''} ${p.name}</div><div class="ir-rank-val">×${p.qtySold}</div></div>`
-  ).join('') : '<div style="color:var(--muted);text-align:center;padding:20px;font-size:.8rem">لا توجد بيانات بعد</div>';
+  document.getElementById('topSellers').innerHTML = bySales.length
+    ? bySales.map((p, i) => `<div class="rank-item"><div class="rank-num">${i + 1}</div><div class="rank-name">${escapeHtml(p.name)}</div><div class="rank-value">×${p.qtySold}</div></div>`).join('')
+    : '<div style="text-align:center;padding:24px;color:var(--text-3);font-size:13px;">لا توجد بيانات</div>';
+
+  refreshIcons();
 };
 
 const renderAllInvoices = () => {
@@ -1138,31 +1271,33 @@ const renderAllInvoices = () => {
   const srt = [...inv].sort((a, b) => new Date(b.date) - new Date(a.date));
   document.getElementById('allInvLst').innerHTML = srt.length ? srt.map(i => {
     const cancelled = i.status === 'cancelled';
-    return `<div class="inv-row">
+    return `<div class="invoice-row">
       <div>
-        <div class="inv-id">فاتورة #${i.id} — طاولة ${i.tableNumber || '—'} ${cancelled ? '<span class="bdg b-r">ملغاة</span>' : ''}</div>
-        <div class="inv-m">${fT(i.date)} · ${fD(i.date)} · 💵 نقداً</div>
+        <div class="inv-title">فاتورة #${i.id} · طاولة ${i.tableNumber || '—'} ${cancelled ? '<span class="badge badge-red">ملغاة</span>' : ''}</div>
+        <div class="inv-meta">${fT(i.date)} · ${fD(i.date)} · نقداً</div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div class="inv-amt ${cancelled ? 'cancelled' : ''}">${fC(i.grandTotal)}</div>
-        ${can('cancelInvoice') && !cancelled ? `<button class="btn b-rose b-sm" onclick="cancelInvoice(${i.id})">إلغاء</button>` : ''}
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="inv-amount ${cancelled ? 'cancelled' : ''}">${fC(i.grandTotal)}</div>
+        ${can('cancelInvoice') && !cancelled ? `<button class="btn btn-danger btn-sm" onclick="cancelInvoice(${i.id})">إلغاء</button>` : ''}
       </div>
     </div>`;
-  }).join('') : '<div style="color:var(--muted);font-size:.77rem;text-align:center;padding:18px">لا توجد فواتير</div>';
+  }).join('') : `<div class="empty-state">${ic('file-x', 48)}<div class="empty-state-title">لا توجد فواتير</div></div>`;
+  refreshIcons();
 };
 
 const cancelInvoice = id => {
-  modal(`<div class="modal-t">إلغاء الفاتورة #${id}</div>
-    <p style="color:var(--muted);font-size:.82rem;margin-bottom:18px">سيتم وضع علامة "ملغاة" على هذه الفاتورة.</p>
-    <div class="modal-ft">
-      <button class="btn b-ghost" onclick="closeM()">تراجع</button>
-      <button class="btn b-rose" onclick="doCancelInv(${id})">إلغاء الفاتورة</button>
+  modal(`
+    <div class="modal-title">إلغاء الفاتورة #${id}</div>
+    <div class="modal-subtitle">سيتم وضع علامة "ملغاة" على هذه الفاتورة.</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM()">تراجع</button>
+      <button class="btn btn-danger" onclick="doCancelInv(${id})">${ic('x-circle')}<span>إلغاء الفاتورة</span></button>
     </div>`);
 };
 const doCancelInv = id => {
   UP('invoices', id, { status: 'cancelled', cancelledAt: new Date().toISOString(), cancelledBy: CU?.id });
-  addA(`إلغاء فاتورة #${id}`, '#e84060');
-  toast('✓ تم إلغاء الفاتورة');
+  addA(`إلغاء فاتورة #${id}`, '#F04F4F');
+  toast('تم إلغاء الفاتورة');
   closeM();
   renderAllInvoices();
 };
@@ -1170,28 +1305,37 @@ const doCancelInv = id => {
 const renderExpenses = () => {
   const exp = G('expenses') || [];
   const srt = [...exp].sort((a, b) => new Date(b.date) - new Date(a.date));
-  document.getElementById('expLst').innerHTML = srt.length ? srt.map(e => `
-    <div class="exp-row">
-      <div>
-        <div class="exp-ti">${e.title}</div>
-        <div class="exp-meta">${e.category || 'عام'} · ${fD(e.date)}${e.notes ? ` · ${e.notes}` : ''}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div class="exp-amt">− ${fC(e.amount)}</div>
-        <button class="btn b-rose b-sm" onclick="confDel('expenses',${e.id},'${e.title.replace(/'/g, "\\'")}')">حذف</button>
-      </div>
-    </div>`).join('') : '<div style="color:var(--muted);font-size:.77rem;text-align:center;padding:18px">لا توجد مصروفات</div>';
+  document.getElementById('expLst').innerHTML = srt.length
+    ? srt.map(e => `<div class="expense-row">
+        <div>
+          <div class="exp-title">${escapeHtml(e.title)}</div>
+          <div class="exp-meta">${escapeHtml(e.category || 'عام')} · ${fD(e.date)}${e.notes ? ` · ${escapeHtml(e.notes)}` : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="exp-amount">− ${fC(e.amount)}</div>
+          <button class="btn btn-danger btn-sm" onclick="confDel('expenses',${e.id},'${escapeHtml(e.title).replace(/'/g,"\\'")}')">${ic('trash-2')}</button>
+        </div>
+      </div>`).join('')
+    : `<div class="empty-state">${ic('receipt', 48)}<div class="empty-state-title">لا توجد مصروفات مسجلة</div></div>`;
+  refreshIcons();
 };
 
-const openExpM = () => modal(`<div class="modal-t">إضافة مصروف</div>
-  <div class="fg"><label>الوصف</label><input id="eTi" placeholder="مثال: فاتورة كهرباء"></div>
-  <div class="fgr">
-    <div class="fg"><label>المبلغ</label><input type="number" id="eAmt" placeholder="0"></div>
-    <div class="fg"><label>الفئة</label><select id="eCat"><option>عام</option><option>إيجار</option><option>كهرباء/ماء</option><option>رواتب</option><option>مشتريات</option><option>صيانة</option><option>مواصلات</option></select></div>
+const openExpM = () => modal(`
+  <div class="modal-title">تسجيل مصروف جديد</div>
+  <div class="modal-subtitle">سجّل تفاصيل المصروف لحساب دقيق للأرباح</div>
+  <div class="input-group"><label>الوصف</label><div class="input-wrap"><input id="eTi" placeholder="مثال: فاتورة كهرباء"></div></div>
+  <div class="form-row">
+    <div class="input-group"><label>المبلغ</label><div class="input-wrap"><input type="number" id="eAmt" placeholder="0"></div></div>
+    <div class="input-group"><label>الفئة</label><div class="input-wrap"><select id="eCat"><option>عام</option><option>إيجار</option><option>كهرباء/ماء</option><option>رواتب</option><option>مشتريات</option><option>صيانة</option><option>مواصلات</option></select></div></div>
   </div>
-  <div class="fg"><label>التاريخ</label><input type="date" id="eDt" value="${td()}"></div>
-  <div class="fg" style="margin-bottom:0"><label>ملاحظات</label><input id="eNt" placeholder="—"></div>
-  <div class="modal-ft"><button class="btn b-ghost" onclick="closeM()">إلغاء</button><button class="btn b-amber" onclick="saveExp()">إضافة</button></div>`);
+  <div class="form-row">
+    <div class="input-group"><label>التاريخ</label><div class="input-wrap"><input type="date" id="eDt" value="${td()}"></div></div>
+    <div class="input-group"><label>ملاحظات</label><div class="input-wrap"><input id="eNt" placeholder="اختياري"></div></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" onclick="closeM()">إلغاء</button>
+    <button class="btn btn-gold" onclick="saveExp()">${ic('save')}<span>حفظ</span></button>
+  </div>`);
 
 const saveExp = () => {
   const ti = document.getElementById('eTi').value.trim();
@@ -1201,15 +1345,13 @@ const saveExp = () => {
   const exp = G('expenses') || [];
   exp.push({ id: NI('expenses'), title: ti, amount: amt, category: document.getElementById('eCat').value, date: document.getElementById('eDt').value, notes: document.getElementById('eNt').value.trim(), createdBy: CU?.id, createdAt: new Date().toISOString() });
   S('expenses', exp);
-  addA(`مصروف: ${ti} — ${fC(amt)}`, '#e84060');
-  toast('✓ تمت الإضافة');
+  addA(`مصروف: ${ti} — ${fC(amt)}`, '#F04F4F');
+  toast('تمت الإضافة');
   closeM();
   renderExpenses();
 };
 
-/* ══════════════════════════════════════════════════════════
-   12. SETTINGS
-══════════════════════════════════════════════════════════ */
+/* ───── SETTINGS ──────────────────────────────────────────────── */
 const renderSet = () => {
   const i = G('ri') || {};
   document.getElementById('sNm').value = i.name || '';
@@ -1220,40 +1362,58 @@ const renderSet = () => {
   renderUsrs();
 };
 const saveSet = () => {
-  S('ri', { name: document.getElementById('sNm').value.trim(), currency: document.getElementById('sCr').value.trim(), tax: parseFloat(document.getElementById('sTx').value) || 0, phone: document.getElementById('sPh').value.trim(), address: document.getElementById('sAd').value.trim() });
+  S('ri', {
+    name: document.getElementById('sNm').value.trim(),
+    currency: document.getElementById('sCr').value.trim(),
+    tax: parseFloat(document.getElementById('sTx').value) || 0,
+    phone: document.getElementById('sPh').value.trim(),
+    address: document.getElementById('sAd').value.trim()
+  });
   document.getElementById('sbRn').textContent = document.getElementById('sNm').value || '—';
-  toast('✓ تم حفظ الإعدادات');
+  toast('تم حفظ الإعدادات');
 };
 const renderUsrs = () => {
   const us = G('users') || [];
   const rA = { manager: 'مدير', cashier: 'كاشير', waiter: 'نادل', kitchen: 'مطبخ' };
   document.getElementById('usrBd').innerHTML = us.map(u => `<tr>
-    <td style="color:#fff;font-weight:600">${u.name}</td>
-    <td style="color:var(--muted);font-size:.75rem">${u.email}</td>
-    <td><span class="bdg b-m">${rA[u.role] || u.role}</span></td>
-    <td><div style="display:flex;gap:5px;justify-content:flex-end;">
-      ${u.id !== CU?.id ? `<button class="btn b-ghost b-sm" onclick="openUsrM(${u.id})">تعديل</button><button class="btn b-rose b-sm" onclick="confDel('users',${u.id},'${u.name.replace(/'/g, "\\'")}')">حذف</button>` : '<span style="font-size:.68rem;color:var(--muted)">أنت</span>'}
+    <td><strong style="color:var(--text)">${escapeHtml(u.name)}</strong></td>
+    <td style="color:var(--text-2);font-size:12px;">${escapeHtml(u.email)}</td>
+    <td><span class="badge badge-muted">${rA[u.role] || u.role}</span></td>
+    <td><div style="display:flex;gap:6px;justify-content:flex-end;">
+      ${u.id !== CU?.id
+        ? `<button class="btn btn-ghost btn-sm" onclick="openUsrM(${u.id})">${ic('edit-3')}</button><button class="btn btn-danger btn-sm" onclick="confDel('users',${u.id},'${escapeHtml(u.name).replace(/'/g,"\\'")}')">${ic('trash-2')}</button>`
+        : '<span style="font-size:11px;color:var(--text-3);">أنت</span>'}
     </div></td>
   </tr>`).join('');
+  refreshIcons();
 };
+
 const openUsrM = (id = null) => {
   const us = G('users') || [];
   const u = id ? us.find(x => x.id === id) : null;
-  modal(`<div class="modal-t">${u ? 'تعديل مستخدم' : 'مستخدم جديد'}</div>
-    <div class="fg"><label>الاسم</label><input id="uNm" value="${u?.name || ''}" placeholder="—"></div>
-    <div class="fg"><label>البريد</label><input type="email" id="uEm" value="${u?.email || ''}" placeholder="—"></div>
-    <div class="fg"><label>كلمة المرور</label><input type="password" id="uPw" value="${u?.password || ''}" placeholder="••••••"></div>
-    <div class="fg" style="margin-bottom:0"><label>الدور</label><select id="uRlSel">
+  modal(`
+    <div class="modal-title">${u ? 'تعديل مستخدم' : 'مستخدم جديد'}</div>
+    <div class="modal-subtitle">حدد الدور والصلاحيات المناسبة</div>
+    <div class="input-group"><label>الاسم الكامل</label><div class="input-wrap"><input id="uNm" value="${escapeHtml(u?.name || '')}"></div></div>
+    <div class="input-group"><label>البريد الإلكتروني</label><div class="input-wrap"><input type="email" id="uEm" value="${escapeHtml(u?.email || '')}"></div></div>
+    <div class="input-group"><label>كلمة المرور</label><div class="input-wrap"><input type="password" id="uPw" value="${escapeHtml(u?.password || '')}" placeholder="••••••"></div></div>
+    <div class="input-group"><label>الدور</label><div class="input-wrap"><select id="uRlSel">
       <option value="manager" ${u?.role === 'manager' ? 'selected' : ''}>مدير — صلاحية كاملة</option>
       <option value="cashier" ${u?.role === 'cashier' ? 'selected' : ''}>كاشير — دفع وتقارير</option>
       <option value="waiter" ${u?.role === 'waiter' ? 'selected' : ''}>نادل — طاولات ومطبخ</option>
       <option value="kitchen" ${u?.role === 'kitchen' ? 'selected' : ''}>مطبخ — فقط الطلبات</option>
-    </select></div>
-    <div class="modal-ft"><button class="btn b-ghost" onclick="closeM()">إلغاء</button><button class="btn b-amber" onclick="saveUsr(${id || 'null'})">حفظ</button></div>`);
+    </select></div></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM()">إلغاء</button>
+      <button class="btn btn-gold" onclick="saveUsr(${id || 'null'})">${ic('save')}<span>حفظ</span></button>
+    </div>`);
 };
-const saveUsr = (id) => {
-  const nm = document.getElementById('uNm').value.trim(), em = document.getElementById('uEm').value.trim(), pw = document.getElementById('uPw').value;
-  if (!nm || !em || !pw) { toast('أكمل الحقول', 'err'); return; }
+
+const saveUsr = id => {
+  const nm = document.getElementById('uNm').value.trim();
+  const em = document.getElementById('uEm').value.trim();
+  const pw = document.getElementById('uPw').value;
+  if (!nm || !em || !pw) { toast('أكمل جميع الحقول', 'err'); return; }
   const us = G('users') || [];
   if (!id && us.find(u => u.email === em)) { toast('البريد مستخدم', 'err'); return; }
   const d = { name: nm, email: em, password: pw, role: document.getElementById('uRlSel').value };
@@ -1261,17 +1421,23 @@ const saveUsr = (id) => {
   else { us.push({ id: NI('users'), ...d }); S('users', us); toast('تمت الإضافة'); }
   closeM(); renderUsrs();
 };
+
 const resetAll = () => {
-  if (confirm('⚠ هل أنت متأكد؟ سيتم حذف كل البيانات نهائياً.')) {
-    localStorage.clear();
-    toast('جارٍ إعادة التحميل...', 'info');
-    setTimeout(() => location.reload(), 1500);
-  }
+  modal(`
+    <div class="modal-title">إعادة الضبط الكامل</div>
+    <div class="modal-subtitle">سيتم حذف جميع البيانات نهائياً ولا يمكن التراجع عن هذا الإجراء.</div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeM()">إلغاء</button>
+      <button class="btn btn-danger" onclick="doResetAll()">${ic('trash-2')}<span>تأكيد الحذف</span></button>
+    </div>`);
+};
+const doResetAll = () => {
+  localStorage.clear();
+  toast('جارٍ إعادة التحميل...', 'info');
+  setTimeout(() => location.reload(), 1200);
 };
 
-/* ══════════════════════════════════════════════════════════
-   13. EXPORT UTILITIES (Excel & PDF)
-══════════════════════════════════════════════════════════ */
+/* ───── EXPORT UTILITIES ──────────────────────────────────────── */
 const exportProductsExcel = () => {
   const prods = G('products') || [];
   const data = prods.map(p => ({
@@ -1287,7 +1453,7 @@ const exportProductsExcel = () => {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'المنتجات');
   XLSX.writeFile(wb, `RestroHub_Products_${td()}.xlsx`);
-  toast('✓ تم تصدير Excel');
+  toast('تم تصدير Excel');
 };
 
 const exportProductsPDF = () => {
@@ -1315,19 +1481,18 @@ const exportProductsPDF = () => {
       body: rows,
       startY: 28,
       styles: { fontSize: 9 },
-      headStyles: { fillColor: [240, 165, 0], textColor: 20 },
+      headStyles: { fillColor: [212, 175, 55], textColor: 20 },
       alternateRowStyles: { fillColor: [245, 245, 245] },
     });
 
     doc.save(`RestroHub_Products_${td()}.pdf`);
-    toast('✓ تم تصدير PDF');
+    toast('تم تصدير PDF');
   } catch (e) {
     console.error(e);
     toast('خطأ في التصدير', 'err');
   }
 };
 
-/* ══════════════════════════════════════════════════════════
-   BOOT
-══════════════════════════════════════════════════════════ */
+/* ───── BOOT ──────────────────────────────────────────────────── */
 seed();
+refreshIcons();
